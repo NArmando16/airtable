@@ -186,13 +186,6 @@
       font-weight: 500;
       color: #e5e7eb;
     }
-    .image-preview img {
-      max-width: 100%;
-      border-radius: 0.7rem;
-      border: 1px solid #1f2937;
-      display: block;
-      margin-bottom: 0.5rem;
-    }
     .image-actions {
       display: flex;
       gap: 0.5rem;
@@ -285,10 +278,17 @@
     </header>
 
     <section>
-      <textarea id="rawInput" placeholder="Pega aquí el texto completo como en tu ejemplo...
+      <div class="controls" style="margin-bottom:0.75rem;">
+        <button id="pasteBtn" class="btn-secondary">
+          📥 Pegar desde portapapeles
+        </button>
+      </div>
+      <textarea id="rawInput" placeholder="Pega aquí el texto completo como en tus ejemplos...
 Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)', uno por línea."></textarea>
       <div class="controls">
-        <button id="processBtn" class="btn">⚙️ Procesar texto</button>
+        <button id="processBtn" class="btn">
+          ⚙️ Procesar texto
+        </button>
         <span class="hint">
           Las imágenes se abrirán en pestañas nuevas (hasta el número que elijas).
         </span>
@@ -331,7 +331,7 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
         <!-- número = slides + 1 -->
         <div id="imageAutoNumber" class="image-auto-number"></div>
 
-        <div class="image-preview" id="imagePreview"></div>
+        <!-- link principal de la imagen -->
         <div id="imageMainLink" class="text-block"></div>
         <div id="imageList"></div>
 
@@ -378,7 +378,6 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
         <h2>
           Slides
           <span class="tag" id="slidesCountTag">0 slides</span>
-          <button class="copy-btn" id="copyAllSlidesBtn">📋 Copiar todas las slides</button>
         </h2>
         <div id="slidesContainer" class="slides-list"></div>
       </div>
@@ -437,12 +436,12 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
 
       let lastParsed = null;
 
-      // limpia bullets, tabs raros, etc.
+      // Limpia bullets, tabs raros, etc.
       function cleanLine(line) {
         if (!line) return "";
         return line
           .replace(/^[\u2022•\-\u25CF\*\s\t]+/, "") // bullets al inicio
-          .replace(/\u2028|\u2029/g, " ")            // line separators raros
+          .replace(/\u2028|\u2029/g, " ")            // separadores raros
           .replace(/\s+/g, " ")
           .trim();
       }
@@ -471,6 +470,9 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
         if (!lines.length) return result;
 
         let inSlidesSection = false;
+
+        // Caption puede ser: "Caption:", "🖤caption:", "Tik Tok Caption:", "Tiktok Caption:", etc.
+        const captionRegex = /^[^a-zA-Z0-9]*((tik\s*tok\s+caption)|(tiktok\s+caption)|caption)\b\s*:?\s*/i;
 
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
@@ -501,22 +503,17 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
             inSlidesSection = true;
           }
 
-          // Caption (acepta cosas como 🖤caption:, ❤️ Caption:, etc.)
-const captionRegex = /^[^a-zA-Z0-9]*caption\b\s*:?\s*/i;
+          // Caption (incluye variantes con emojis y "Tik Tok Caption")
+          if (captionRegex.test(line)) {
+            let captionInline = line.replace(captionRegex, "").trim();
+            captionInline = cleanLine(captionInline);
+            if (captionInline) {
+              result.caption = captionInline;
+            } else if (i + 1 < lines.length) {
+              result.caption = cleanLine(lines[i + 1]);
+            }
+          }
 
-if (captionRegex.test(line)) {
-  // quitamos el emoji / símbolo + la palabra "caption:"
-  let captionInline = line.replace(captionRegex, "").trim();
-  captionInline = cleanLine(captionInline);
-
-  if (captionInline) {
-    // texto en la misma línea
-    result.caption = captionInline;
-  } else if (i + 1 < lines.length) {
-    // si no hay texto después de "caption", usamos la siguiente línea
-    result.caption = cleanLine(lines[i + 1]);
-  }
-}
           // Slides
           if (isSlideHeader(line, inSlidesSection)) {
             const title = line;
@@ -575,7 +572,9 @@ if (captionRegex.test(line)) {
               const l2lower = l2.toLowerCase();
               if (l2lower.startsWith("hashtag order") ||
                   l2lower.startsWith("hashtags for post")) {
-                const rest = cleanLine(l2.replace(/hashtag(s)? for post/i, "").replace(/hashtag order/i, ""));
+                const rest = cleanLine(
+                  l2.replace(/hashtag(s)? for post/i, "").replace(/hashtag order/i, "")
+                );
                 if (rest) {
                   result.hashtags = rest;
                 } else if (j + 1 < lines.length) {
@@ -705,7 +704,6 @@ if (captionRegex.test(line)) {
 
         // Imágenes
         document.getElementById("imageCategoryField").textContent = orDash(data.imageCategory);
-        const imagePreview = document.getElementById("imagePreview");
         const imageMainLink = document.getElementById("imageMainLink");
         const imageList = document.getElementById("imageList");
         const imageCountTag = document.getElementById("imageCountTag");
@@ -714,7 +712,6 @@ if (captionRegex.test(line)) {
         const imageCountHint = document.getElementById("imageCountHint");
         const imageAutoNumber = document.getElementById("imageAutoNumber");
 
-        imagePreview.innerHTML = "";
         imageMainLink.textContent = "";
         imageList.innerHTML = "";
         imageOpenFirst.classList.add("disabled");
@@ -735,11 +732,6 @@ if (captionRegex.test(line)) {
           imageAutoNumber.textContent = autoNumber;
 
           const first = links[0];
-          const img = document.createElement("img");
-          img.src = first;
-          img.alt = "Imagen 1";
-          imagePreview.appendChild(img);
-
           imageMainLink.textContent = first;
 
           imageOpenFirst.href = first;
@@ -806,6 +798,25 @@ if (captionRegex.test(line)) {
         alert(`Se abrieron ${selected.length} imágenes.\nEn iPhone, revisa las pestañas/vistas y guarda cada imagen.`);
       }
 
+      // Botón para pegar desde el portapapeles
+      document.getElementById("pasteBtn").addEventListener("click", async () => {
+        const textarea = document.getElementById("rawInput");
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          try {
+            const text = await navigator.clipboard.readText();
+            if (text) {
+              textarea.value = text;
+            } else {
+              alert("Tu portapapeles está vacío o el navegador no permitió leerlo.");
+            }
+          } catch (e) {
+            alert("No se pudo leer el portapapeles. Pega manualmente (mantén pulsado y pega).");
+          }
+        } else {
+          alert("Tu navegador no permite pegar desde JavaScript. Pega el texto manualmente.");
+        }
+      });
+
       document.getElementById("processBtn").addEventListener("click", () => {
         const raw = document.getElementById("rawInput").value || "";
         const parsed = parseInput(raw);
@@ -819,19 +830,6 @@ if (captionRegex.test(line)) {
         if (!links.length) return;
         const countInput = document.getElementById("imageCountInput");
         openImagesQueue(links, lastParsed.slides.length || 0, countInput.value);
-      });
-
-      document.getElementById("copyAllSlidesBtn").addEventListener("click", async () => {
-        if (!lastParsed || !lastParsed.slides.length) return;
-        const all = lastParsed.slides
-          .map(s => (s.title ? s.title + "\n" : "") + (s.text || ""))
-          .join("\n\n");
-        if (!all.trim()) return;
-        const btn = document.getElementById("copyAllSlidesBtn");
-        const original = btn.textContent;
-        await copyToClipboard(all);
-        btn.textContent = "✅ Slides copiadas";
-        setTimeout(() => { btn.textContent = original; }, 1200);
       });
 
       document.getElementById("copyGenresBtn").addEventListener("click", async () => {
