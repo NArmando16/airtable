@@ -695,7 +695,7 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
         const slidesContainer = document.getElementById("slidesContainer");
         slidesContainer.innerHTML = "";
         const slidesCountTag = document.getElementById("slidesCountTag");
-        slidesCountTag.textContent = data.slides.length + " slide" + (data.slides.length === 1 ? "" : "s";
+        slidesCountTag.textContent = data.slides.length + " slide" + (data.slides.length === 1 ? "" : "s");
 
         data.slides.forEach((slide, idx) => {
           const slideId = "slide_" + idx;
