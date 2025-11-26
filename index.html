@@ -501,17 +501,22 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
             inSlidesSection = true;
           }
 
-          // Caption
-          if (/^caption:?/i.test(line)) {
-            let captionInline = line.replace(/^caption:?/i, "").trim();
-            captionInline = cleanLine(captionInline);
-            if (captionInline) {
-              result.caption = captionInline;
-            } else if (i + 1 < lines.length) {
-              result.caption = cleanLine(lines[i + 1]);
-            }
-          }
+          // Caption (acepta cosas como 🖤caption:, ❤️ Caption:, etc.)
+const captionRegex = /^[^a-zA-Z0-9]*caption\b\s*:?\s*/i;
 
+if (captionRegex.test(line)) {
+  // quitamos el emoji / símbolo + la palabra "caption:"
+  let captionInline = line.replace(captionRegex, "").trim();
+  captionInline = cleanLine(captionInline);
+
+  if (captionInline) {
+    // texto en la misma línea
+    result.caption = captionInline;
+  } else if (i + 1 < lines.length) {
+    // si no hay texto después de "caption", usamos la siguiente línea
+    result.caption = cleanLine(lines[i + 1]);
+  }
+}
           // Slides
           if (isSlideHeader(line, inSlidesSection)) {
             const title = line;
