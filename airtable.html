@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Parser de Contenido TikTok / Libros</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 2rem 1rem;
+      box-sizing: border-box;
+    }
+    .app {
+      width: 100%;
+      max-width: 1100px;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.25rem;
+    }
+    .subtitle {
+      color: #9ca3af;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      background: #020617;
+      color: #e5e7eb;
+      border-radius: 0.75rem;
+      border: 1px solid #1f2937;
+      padding: 1rem;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    textarea:focus {
+      outline: 2px solid #6366f1;
+      outline-offset: 2px;
+    }
+    .controls {
+      margin: 0.75rem 0 1.5rem;
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border-radius: 999px;
+      padding: 0.5rem 1.15rem;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      color: white;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.15s ease;
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 30px rgba(0,0,0,0.55);
+    }
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.5);
+    }
+    .btn[disabled] {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+      transform: none;
+    }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid #4b5563;
+      box-shadow: none;
+    }
+    .btn-secondary:hover {
+      background: #111827;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+    .hint {
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    .card {
+      background: #020617;
+      border-radius: 0.9rem;
+      padding: 1rem 1.1rem;
+      border: 1px solid #1f2937;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    }
+    .card h2 {
+      font-size: 1rem;
+      margin: 0 0 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.1rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      background: #111827;
+      color: #9ca3af;
+      border: 1px solid #1f2937;
+    }
+    .field-row {
+      font-size: 0.9rem;
+      margin-bottom: 0.3rem;
+      display: flex;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+    }
+    .field-row strong {
+      color: #d1d5db;
+    }
+    pre, .text-block {
+      background: #020617;
+      border-radius: 0.6rem;
+      border: 1px solid #111827;
+      padding: 0.6rem 0.7rem;
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin: 0.25rem 0 0.4rem;
+      max-height: 220px;
+      overflow: auto;
+    }
+    .copy-btn {
+      font-size: 0.75rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .copy-btn:hover {
+      background: #111827;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.1rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      background: #111827;
+      margin-right: 0.25rem;
+      margin-bottom: 0.25rem;
+    }
+    .slides-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      max-height: 360px;
+      overflow: auto;
+      padding-right: 0.25rem;
+    }
+    .slide-item {
+      border-radius: 0.7rem;
+      border: 1px solid #111827;
+      padding: 0.6rem 0.7rem;
+      background: #020617;
+    }
+    .slide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.3rem;
+      flex-wrap: wrap;
+    }
+    .slide-title {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+    .image-preview img {
+      max-width: 100%;
+      border-radius: 0.7rem;
+      border: 1px solid #1f2937;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+    .image-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    .image-actions a,
+    .image-actions button {
+      font-size: 0.8rem;
+      text-decoration: none;
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      cursor: pointer;
+    }
+    .image-actions a:hover,
+    .image-actions button:hover {
+      background: #111827;
+    }
+    .image-actions a.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    ul {
+      padding-left: 1.1rem;
+      margin: 0.3rem 0 0.5rem;
+      font-size: 0.9rem;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .pill {
+      font-size: 0.75rem;
+      padding: 0.1rem 0.6rem;
+      border-radius: 999px;
+      background: #111827;
+      border: 1px solid #1f2937;
+      color: #9ca3af;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .status {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 0.75rem;
+    }
+    .image-link-item {
+      font-size: 0.8rem;
+      margin-bottom: 0.25rem;
+      word-break: break-all;
+    }
+    .image-link-item a {
+      color: #93c5fd;
+      text-decoration: none;
+    }
+    .image-link-item a:hover {
+      text-decoration: underline;
+    }
+
+    /* Mobile tweaks */
+    @media (max-width: 600px) {
+      body {
+        padding: 1.25rem 0.5rem;
+      }
+      h1 {
+        font-size: 1.4rem;
+      }
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .btn,
+      .image-actions a,
+      .image-actions button {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>Parser de contenido para posts</h1>
+      <p class="subtitle">
+        Pega todo el texto que te mandan (OrderID, Sound Link, Caption, Slides, Imágenes, Hashtags)
+        y el sistema lo separa en bloques copiables y te abre varias imágenes a la vez (cola de descargas).
+      </p>
+    </header>
+
+    <section>
+      <textarea id="rawInput" placeholder="Pega aquí el texto completo como en tu ejemplo...
+Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', uno por línea."></textarea>
+      <div class="controls">
+        <button id="processBtn" class="btn">
+          ⚙️ Procesar texto
+        </button>
+        <span class="hint">
+          Tip: Bajo <strong>Link Cover Images</strong> puedes poner varias URLs (1 por línea).
+          El botón abrirá como máximo <strong>slides + 1</strong> imágenes en pestañas nuevas.
+        </span>
+      </div>
+    </section>
+
+    <section id="results" class="hidden">
+      <p id="statusMessage" class="status"></p>
+
+      <div class="grid">
+        <!-- Columna izquierda -->
+        <div class="card">
+          <h2>
+            Datos generales
+            <span class="tag">Metadata</span>
+          </h2>
+          <div class="field-row">
+            <strong>OrderID:</strong> <span id="orderIdField">—</span>
+          </div>
+          <div class="field-row">
+            <strong>Día de orden:</strong> <span id="orderDayField">—</span>
+          </div>
+          <div class="field-row">
+            <strong>Cuenta:</strong> <span id="accountField">—</span>
+          </div>
+          <div class="field-row">
+            <strong>Crew:</strong> <span id="crewField">—</span>
+          </div>
+          <div class="field-row">
+            <strong>Device:</strong> <span id="deviceField">—</span>
+          </div>
+          <div class="field-row" style="margin-top:0.4rem;">
+            <strong>Tipo de post:</strong> <span id="typeField" class="badge">—</span>
+          </div>
+          <hr style="border: none; border-top: 1px solid #111827; margin: 0.8rem 0;" />
+          <div class="field-row">
+            <strong>Sound link:</strong>
+          </div>
+          <div class="field-row">
+            <a id="soundLinkField" href="#" target="_blank" rel="noopener noreferrer" class="pill">
+              🎵 Abrir sonido
+            </a>
+          </div>
+        </div>
+
+        <!-- Columna derecha -->
+        <div class="card">
+          <h2>
+            Caption
+            <button class="copy-btn" data-copy="captionField">📋 Copiar</button>
+          </h2>
+          <pre id="captionField"></pre>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:1.5rem;">
+        <h2>
+          Slides
+          <span class="tag" id="slidesCountTag">0 slides</span>
+        </h2>
+        <div id="slidesContainer" class="slides-list"></div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>
+            Imágenes
+            <span class="tag" id="imageCountTag">0 imágenes</span>
+          </h2>
+          <div class="field-row">
+            <strong>Categoría:</strong> <span id="imageCategoryField">—</span>
+          </div>
+          <p class="hint" style="margin-top:0.3rem;">
+            Se abrirán como máximo <strong>nº de slides + 1</strong> imágenes en diferentes pestañas.
+            En iPhone, desde cada pestaña puedes mantener pulsado la imagen y elegir <em>Guardar imagen</em>.
+          </p>
+          <div class="image-preview" id="imagePreview"></div>
+          <div id="imageList"></div>
+          <div class="image-actions">
+            <a href="#" id="imageOpenFirst" target="_blank" rel="noopener noreferrer" class="disabled">
+              🌐 Abrir primera
+            </a>
+            <a href="#" id="imageDownloadFirst" download="imagen_1.jpg" class="disabled">
+              ⬇️ Descargar primera
+            </a>
+            <button id="downloadAllBtn" class="btn-secondary">
+              ⬇️ Abrir/descargar todas
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>
+            Libro, géneros y hashtags
+          </h2>
+          <div class="field-row">
+            <strong>Libro / Autor / Tropes:</strong>
+          </div>
+          <div id="bookInfoField" class="text-block"></div>
+
+          <div class="field-row" style="margin-top:0.4rem;">
+            <strong>Géneros / etiquetas:</strong>
+          </div>
+          <ul id="genresList"></ul>
+
+          <div class="field-row" style="margin-top:0.4rem;">
+            <strong>Hashtags:</strong>
+            <button class="copy-btn" data-copy="hashtagsField">📋 Copiar hashtags</button>
+          </div>
+          <pre id="hashtagsField"></pre>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      const defaultResult = () => ({
+        orderId: "",
+        diaOrden: "",
+        cuenta: "",
+        crew: "",
+        device: "",
+        soundLink: "",
+        typeOfPost: "",
+        caption: "",
+        slides: [],
+        imageCategory: "",
+        imageLinks: [],   // varias imágenes
+        bookInfo: "",
+        genres: [],
+        hashtags: ""
+      });
+
+      let lastParsed = null; // guardamos el último parseo para la cola de descargas
+
+      // Detecta si una línea es encabezado de slide:
+      // - "Slide 1"
+      // - "Slide four"
+      // - "[Slide 2]"
+      // - "3", "4.", "10)"
+      function isSlideHeader(line, inSlidesSection) {
+        const trimmed = line.trim();
+
+        // 1) Empieza con "slide"
+        if (/^slide\b/i.test(trimmed)) return true;
+
+        // 2) "[Slide 2]"
+        if (/^\[\s*slide\b.*\]$/i.test(trimmed)) return true;
+
+        // 3) Solo números si ya estamos en la sección de slides
+        if (inSlidesSection) {
+          const m = /^(\d{1,2})(?:[.)])?$/.exec(trimmed);
+          if (m) {
+            const n = parseInt(m[1], 10);
+            if (n >= 1 && n <= 50) return true;
+          }
+        }
+
+        return false;
+      }
+
+      function parseInput(raw) {
+        const result = defaultResult();
+        const lines = raw
+          .split(/\r?\n/)
+          .map(l => l.trim())
+          .filter(l => l.length > 0);
+
+        if (!lines.length) return result;
+
+        let inSlidesSection = false;
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          const lower = line.toLowerCase();
+
+          const takeNext = (setter) => {
+            if (i + 1 < lines.length) {
+              setter(lines[i + 1]);
+            }
+          };
+
+          // Metadata
+          if (lower === "orderid") {
+            takeNext(v => result.orderId = v);
+          } else if (lower === "dia de orden") {
+            takeNext(v => result.diaOrden = v);
+          } else if (lower === "cuenta") {
+            takeNext(v => result.cuenta = v);
+          } else if (lower === "crew") {
+            takeNext(v => result.crew = v);
+          } else if (lower === "device") {
+            takeNext(v => result.device = v);
+          } else if (lower === "sound link") {
+            takeNext(v => result.soundLink = v);
+          } else if (lower === "type of post") {
+            takeNext(v => result.typeOfPost = v);
+          }
+
+          // Marcamos que empieza la sección de texto/slides
+          if (/^text to use on post/i.test(line)) {
+            inSlidesSection = true;
+          }
+
+          // Caption
+          if (/^caption:?/i.test(line)) {
+            let captionInline = line.replace(/^caption:?/i, "").trim();
+            if (captionInline) {
+              result.caption = captionInline;
+            } else if (i + 1 < lines.length) {
+              result.caption = lines[i + 1];
+            }
+          }
+
+          // Slides
+          if (isSlideHeader(line, inSlidesSection)) {
+            const title = line;
+            const bodyLines = [];
+            let j = i + 1;
+            for (; j < lines.length; j++) {
+              const l2 = lines[j];
+              const l2lower = l2.toLowerCase();
+
+              if (isSlideHeader(l2, inSlidesSection) ||
+                  l2lower.startsWith("images for post") ||
+                  l2lower.startsWith("link cover images") ||
+                  l2lower.startsWith("book - author - tropes") ||
+                  l2lower.startsWith("hashtag order")) {
+                break;
+              }
+              bodyLines.push(l2);
+            }
+            result.slides.push({
+              title,
+              text: bodyLines.join("\n").trim()
+            });
+            i = j - 1;
+            continue;
+          }
+
+          // Imágenes (categoría)
+          if (lower.startsWith("images for post")) {
+            if (i + 1 < lines.length) {
+              result.imageCategory = lines[i + 1];
+            }
+          }
+
+          // Imágenes (varias URLs bajo Link Cover Images)
+          if (lower.startsWith("link cover images")) {
+            let j = i + 1;
+            for (; j < lines.length; j++) {
+              const l2 = lines[j];
+              const l2lower = l2.toLowerCase();
+              if (l2lower.startsWith("book - author - tropes") ||
+                  l2lower.startsWith("hashtag order") ||
+                  l2lower.startsWith("images for post")) {
+                break;
+              }
+              if (/^https?:\/\//i.test(l2)) {
+                result.imageLinks.push(l2);
+              }
+            }
+            i = j - 1;
+          }
+
+          // Libro / géneros / hashtags
+          if (lower.startsWith("book - author - tropes")) {
+            if (i + 1 < lines.length) {
+              result.bookInfo = lines[i + 1];
+            }
+            let j = i + 2;
+            for (; j < lines.length; j++) {
+              const l2 = lines[j];
+              const l2lower = l2.toLowerCase();
+              if (l2lower.startsWith("hashtag order")) {
+                const rest = l2.replace(/hashtag order/i, "").trim();
+                if (rest) {
+                  result.hashtags = rest;
+                } else if (j + 1 < lines.length) {
+                  result.hashtags = lines[j + 1];
+                }
+                break;
+              } else {
+                result.genres.push(l2);
+              }
+            }
+            i = j - 1;
+          }
+        }
+
+        return result;
+      }
+
+      async function copyToClipboard(text) {
+        if (!text) return;
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(text);
+            return;
+          } catch (e) {
+            // fallback
+          }
+        }
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.top = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+          document.execCommand("copy");
+        } catch (e) {
+          console.error("No se pudo copiar al portapapeles", e);
+        } finally {
+          document.body.removeChild(textarea);
+        }
+      }
+
+      function attachCopyHandlers() {
+        document.querySelectorAll("[data-copy]").forEach(btn => {
+          btn.onclick = async () => {
+            const targetId = btn.getAttribute("data-copy");
+            const el = document.getElementById(targetId);
+            if (!el) return;
+            const text = el.innerText || el.textContent || "";
+            if (!text.trim()) return;
+            const original = btn.textContent;
+            await copyToClipboard(text);
+            btn.textContent = "✅ Copiado";
+            setTimeout(() => {
+              btn.textContent = original;
+            }, 1200);
+          };
+        });
+      }
+
+      function renderResults(data) {
+        const resultsSection = document.getElementById("results");
+        const statusMessage = document.getElementById("statusMessage");
+        resultsSection.classList.remove("hidden");
+
+        const foundSlides = data.slides.length;
+        const parts = [];
+        if (data.caption) parts.push("caption");
+        if (foundSlides) parts.push(foundSlides + " slides");
+        if ((data.imageLinks || []).length) parts.push(data.imageLinks.length + " imágenes");
+        if (data.hashtags) parts.push("hashtags");
+        statusMessage.textContent = parts.length
+          ? "Detectado: " + parts.join(" · ")
+          : "No se detectaron bloques con el formato esperado. Revisa que los encabezados (Caption, Slides, etc.) estén bien escritos.";
+
+        const orDash = v => v && v.trim() ? v : "—";
+
+        document.getElementById("orderIdField").textContent = orDash(data.orderId);
+        document.getElementById("orderDayField").textContent = orDash(data.diaOrden);
+        document.getElementById("accountField").textContent = orDash(data.cuenta);
+        document.getElementById("crewField").textContent = orDash(data.crew);
+        document.getElementById("deviceField").textContent = orDash(data.device);
+
+        const typeField = document.getElementById("typeField");
+        typeField.textContent = orDash(data.typeOfPost);
+
+        const soundLinkField = document.getElementById("soundLinkField");
+        if (data.soundLink && data.soundLink.startsWith("http")) {
+          soundLinkField.href = data.soundLink;
+          soundLinkField.classList.remove("disabled");
+        } else {
+          soundLinkField.href = "#";
+        }
+
+        // Caption
+        const captionField = document.getElementById("captionField");
+        captionField.textContent = data.caption || "";
+
+        // Slides
+        const slidesContainer = document.getElementById("slidesContainer");
+        slidesContainer.innerHTML = "";
+        const slidesCountTag = document.getElementById("slidesCountTag");
+        slidesCountTag.textContent = data.slides.length + " slide" + (data.slides.length === 1 ? "" : "s";
+
+        data.slides.forEach((slide, idx) => {
+          const slideId = "slide_" + idx;
+
+          const wrap = document.createElement("div");
+          wrap.className = "slide-item";
+
+          const header = document.createElement("div");
+          header.className = "slide-header";
+
+          const title = document.createElement("div");
+          title.className = "slide-title";
+          title.textContent = slide.title || "Slide " + (idx + 1);
+
+          const copyBtn = document.createElement("button");
+          copyBtn.className = "copy-btn";
+          copyBtn.setAttribute("data-copy", slideId);
+          copyBtn.textContent = "📋 Copiar slide";
+
+          header.appendChild(title);
+          header.appendChild(copyBtn);
+
+          const pre = document.createElement("pre");
+          pre.id = slideId;
+          pre.textContent = slide.text || "";
+
+          wrap.appendChild(header);
+          wrap.appendChild(pre);
+          slidesContainer.appendChild(wrap);
+        });
+
+        // Imágenes
+        const imageCategoryField = document.getElementById("imageCategoryField");
+        imageCategoryField.textContent = orDash(data.imageCategory);
+
+        const imagePreview = document.getElementById("imagePreview");
+        const imageList = document.getElementById("imageList");
+        const imageCountTag = document.getElementById("imageCountTag");
+        const imageOpenFirst = document.getElementById("imageOpenFirst");
+        const imageDownloadFirst = document.getElementById("imageDownloadFirst");
+
+        imagePreview.innerHTML = "";
+        imageList.innerHTML = "";
+        imageOpenFirst.classList.add("disabled");
+        imageDownloadFirst.classList.add("disabled");
+        imageOpenFirst.href = "#";
+        imageDownloadFirst.href = "#";
+
+        const links = data.imageLinks || [];
+        imageCountTag.textContent = links.length + " imagen" + (links.length === 1 ? "" : "es");
+
+        if (links.length) {
+          const first = links[0];
+          const img = document.createElement("img");
+          img.src = first;
+          img.alt = "Imagen de portada / slide 1";
+          imagePreview.appendChild(img);
+
+          imageOpenFirst.href = first;
+          imageOpenFirst.classList.remove("disabled");
+
+          imageDownloadFirst.href = first;
+          imageDownloadFirst.classList.remove("disabled");
+
+          links.forEach((url, idx) => {
+            const div = document.createElement("div");
+            div.className = "image-link-item";
+            const a = document.createElement("a");
+            a.href = url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.textContent = `Imagen ${idx + 1}: ${url}`;
+            div.appendChild(a);
+            imageList.appendChild(div);
+          });
+        }
+
+        // Libro / géneros / hashtags
+        document.getElementById("bookInfoField").textContent = data.bookInfo || "";
+
+        const genresList = document.getElementById("genresList");
+        genresList.innerHTML = "";
+        (data.genres || []).forEach(g => {
+          const li = document.createElement("li");
+          li.textContent = g;
+          genresList.appendChild(li);
+        });
+
+        document.getElementById("hashtagsField").textContent = data.hashtags || "";
+
+        attachCopyHandlers();
+      }
+
+      // Abre varias imágenes a la vez (cola de descargas) -> pestañas nuevas
+      function openAllImagesQueue(links, slidesCount) {
+        if (!links || !links.length) return;
+        const max = slidesCount ? Math.min(links.length, slidesCount + 1) : links.length;
+        const selected = links.slice(0, max);
+
+        selected.forEach((url, idx) => {
+          const a = document.createElement("a");
+          a.href = url;
+          a.target = "_blank"; // pestaña nueva (en iPhone pasa a nueva vista)
+          a.rel = "noopener noreferrer";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        });
+
+        alert(`Se abrieron ${selected.length} imágenes.\nEn iPhone, revisa las pestañas/vistas y guarda cada imagen.`);
+      }
+
+      // Eventos
+      document.getElementById("processBtn").addEventListener("click", () => {
+        const raw = document.getElementById("rawInput").value || "";
+        const parsed = parseInput(raw);
+        lastParsed = parsed;
+        renderResults(parsed);
+      });
+
+      document.getElementById("downloadAllBtn").addEventListener("click", () => {
+        if (!lastParsed) return;
+        const links = lastParsed.imageLinks || [];
+        if (!links.length) return;
+        const btn = document.getElementById("downloadAllBtn");
+        const original = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Abriendo imágenes...";
+        try {
+          openAllImagesQueue(links, lastParsed.slides.length || 0);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = original;
+        }
+      });
+
+      attachCopyHandlers();
+    </script>
+  </main>
+</body>
+</html>
