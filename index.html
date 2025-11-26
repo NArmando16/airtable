@@ -238,15 +238,6 @@
     .image-link-item a:hover {
       text-decoration: underline;
     }
-    .image-auto-number {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin-top: 0.6rem;
-    margin-bottom: 0.2rem;
-    text-align: center;
-    color: #e5e7eb;
-  }
-
     ul {
       padding-left: 1.1rem;
       margin: 0.3rem 0 0.5rem;
@@ -255,7 +246,14 @@
     .hidden {
       display: none !important;
     }
-
+    .image-auto-number {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-top: 0.6rem;
+      margin-bottom: 0.2rem;
+      text-align: center;
+      color: #e5e7eb;
+    }
     @media (max-width: 600px) {
       body {
         padding: 1.25rem 0.5rem;
@@ -288,11 +286,9 @@
 
     <section>
       <textarea id="rawInput" placeholder="Pega aquí el texto completo como en tu ejemplo...
-Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', uno por línea."></textarea>
+Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)', uno por línea."></textarea>
       <div class="controls">
-        <button id="processBtn" class="btn">
-          ⚙️ Procesar texto
-        </button>
+        <button id="processBtn" class="btn">⚙️ Procesar texto</button>
         <span class="hint">
           Las imágenes se abrirán en pestañas nuevas (hasta el número que elijas).
         </span>
@@ -312,13 +308,13 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
           <strong>Usuario / Cuenta:</strong> <span id="accountField">—</span>
         </div>
         <div class="field-row">
-          <strong>OrderID:</strong> <span id="orderIdField">—</span>
+          <strong>Entregable / ID:</strong> <span id="orderIdField">—</span>
         </div>
         <div class="field-row">
           <strong>Crew:</strong> <span id="crewField">—</span>
         </div>
         <div class="field-row">
-          <strong>Device:</strong> <span id="deviceField">—</span>
+          <strong>Celular / Device:</strong> <span id="deviceField">—</span>
         </div>
       </div>
 
@@ -329,15 +325,15 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
           <span class="tag" id="imageCountTag">0 imágenes</span>
         </h2>
         <div class="field-row">
-    <strong>Categoría:</strong> <span id="imageCategoryField">—</span>
-  </div>
+          <strong>Categoría:</strong> <span id="imageCategoryField">—</span>
+        </div>
 
-<!-- AQUÍ APARECE EL NÚMERO = slides + 1 -->
-<div id="imageAutoNumber" class="image-auto-number"></div>
+        <!-- número = slides + 1 -->
+        <div id="imageAutoNumber" class="image-auto-number"></div>
 
-<div class="image-preview" id="imagePreview"></div>
-<div id="imageList"></div>
-
+        <div class="image-preview" id="imagePreview"></div>
+        <div id="imageMainLink" class="text-block"></div>
+        <div id="imageList"></div>
 
         <div class="field-row" style="margin-top:0.4rem;">
           <strong>Cantidad a abrir:</strong>
@@ -387,7 +383,7 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
         <div id="slidesContainer" class="slides-list"></div>
       </div>
 
-      <!-- 5. TÍTULO + 6. CAPTION + 7. GÉNEROS + 8. HASHTAGS -->
+      <!-- 5. TÍTULO + 6. CAPTION + 7. GÉNEROS + 8. HASHTAGS + combo -->
       <div class="card">
         <h2>
           Título (Libro / Autor / Tropes)
@@ -412,6 +408,12 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
           <button class="copy-btn" data-copy="hashtagsField">📋 Copiar hashtags</button>
         </h2>
         <pre id="hashtagsField"></pre>
+
+        <h2 style="margin-top:0.8rem;">
+          Caption + géneros + hashtags
+          <button class="copy-btn" data-copy="comboField">📋 Copiar combo</button>
+        </h2>
+        <pre id="comboField"></pre>
       </div>
     </section>
 
@@ -434,6 +436,16 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
       });
 
       let lastParsed = null;
+
+      // limpia bullets, tabs raros, etc.
+      function cleanLine(line) {
+        if (!line) return "";
+        return line
+          .replace(/^[\u2022•\-\u25CF\*\s\t]+/, "") // bullets al inicio
+          .replace(/\u2028|\u2029/g, " ")            // line separators raros
+          .replace(/\s+/g, " ")
+          .trim();
+      }
 
       function isSlideHeader(line, inSlidesSection) {
         const trimmed = line.trim();
@@ -465,22 +477,23 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
           const lower = line.toLowerCase();
 
           const takeNext = (setter) => {
-            if (i + 1 < lines.length) setter(lines[i + 1]);
+            if (i + 1 < lines.length) setter(cleanLine(lines[i + 1]));
           };
 
-          if (lower === "orderid") {
+          // IDs / fechas / cuenta
+          if (lower === "entregableid" || lower === "orderid") {
             takeNext(v => result.orderId = v);
-          } else if (lower === "dia de orden") {
+          } else if (lower === "dia de entregable" || lower === "dia de orden") {
             takeNext(v => result.diaOrden = v);
-          } else if (lower === "cuenta") {
+          } else if (lower.endsWith("cuenta")) { // "Cuenta" o "1 Cuenta"
             takeNext(v => result.cuenta = v);
-          } else if (lower === "crew") {
+          } else if (lower === "crew" || lower.endsWith("crew")) {
             takeNext(v => result.crew = v);
-          } else if (lower === "device") {
+          } else if (lower === "celular" || lower === "device") {
             takeNext(v => result.device = v);
-          } else if (lower === "sound link") {
+          } else if (lower.startsWith("sound link")) {
             takeNext(v => result.soundLink = v);
-          } else if (lower === "type of post") {
+          } else if (lower.startsWith("type of post")) {
             takeNext(v => result.typeOfPost = v);
           }
 
@@ -488,15 +501,18 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
             inSlidesSection = true;
           }
 
+          // Caption
           if (/^caption:?/i.test(line)) {
             let captionInline = line.replace(/^caption:?/i, "").trim();
+            captionInline = cleanLine(captionInline);
             if (captionInline) {
               result.caption = captionInline;
             } else if (i + 1 < lines.length) {
-              result.caption = lines[i + 1];
+              result.caption = cleanLine(lines[i + 1]);
             }
           }
 
+          // Slides
           if (isSlideHeader(line, inSlidesSection)) {
             const title = line;
             const bodyLines = [];
@@ -506,9 +522,10 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
               const l2lower = l2.toLowerCase();
               if (isSlideHeader(l2, inSlidesSection) ||
                   l2lower.startsWith("images for post") ||
-                  l2lower.startsWith("link cover images") ||
+                  l2lower.startsWith("link cover image") ||
                   l2lower.startsWith("book - author - tropes") ||
-                  l2lower.startsWith("hashtag order")) {
+                  l2lower.startsWith("hashtag order") ||
+                  l2lower.startsWith("hashtags for post")) {
                 break;
               }
               bodyLines.push(l2);
@@ -518,47 +535,50 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
             continue;
           }
 
+          // Imágenes (categoría)
           if (lower.startsWith("images for post")) {
-            if (i + 1 < lines.length) {
-              result.imageCategory = lines[i + 1];
-            }
+            takeNext(v => result.imageCategory = v);
           }
 
-          if (lower.startsWith("link cover images")) {
+          // Imágenes (URLs bajo Link Cover Image / Images)
+          if (lower.startsWith("link cover image")) {
             let j = i + 1;
             for (; j < lines.length; j++) {
               const l2 = lines[j];
               const l2lower = l2.toLowerCase();
               if (l2lower.startsWith("book - author - tropes") ||
                   l2lower.startsWith("hashtag order") ||
+                  l2lower.startsWith("hashtags for post") ||
                   l2lower.startsWith("images for post")) {
                 break;
               }
               if (/^https?:\/\//i.test(l2)) {
-                result.imageLinks.push(l2);
+                result.imageLinks.push(l2.trim());
               }
             }
             i = j - 1;
           }
 
+          // Libro / géneros / hashtags
           if (lower.startsWith("book - author - tropes")) {
             if (i + 1 < lines.length) {
-              result.bookInfo = lines[i + 1];
+              result.bookInfo = cleanLine(lines[i + 1]);
             }
             let j = i + 2;
             for (; j < lines.length; j++) {
               const l2 = lines[j];
               const l2lower = l2.toLowerCase();
-              if (l2lower.startsWith("hashtag order")) {
-                const rest = l2.replace(/hashtag order/i, "").trim();
+              if (l2lower.startsWith("hashtag order") ||
+                  l2lower.startsWith("hashtags for post")) {
+                const rest = cleanLine(l2.replace(/hashtag(s)? for post/i, "").replace(/hashtag order/i, ""));
                 if (rest) {
                   result.hashtags = rest;
                 } else if (j + 1 < lines.length) {
-                  result.hashtags = lines[j + 1];
+                  result.hashtags = cleanLine(lines[j + 1]);
                 }
                 break;
               } else {
-                result.genres.push(l2);
+                result.genres.push(cleanLine(l2));
               }
             }
             i = j - 1;
@@ -679,74 +699,43 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
         });
 
         // Imágenes
-      document.getElementById("imageCategoryField").textContent = orDash(data.imageCategory);
-const imagePreview = document.getElementById("imagePreview");
-const imageList = document.getElementById("imageList");
-const imageCountTag = document.getElementById("imageCountTag");
-const imageOpenFirst = document.getElementById("imageOpenFirst");
-const imageCountInput = document.getElementById("imageCountInput");
-const imageCountHint = document.getElementById("imageCountHint");
-const imageAutoNumber = document.getElementById("imageAutoNumber");
+        document.getElementById("imageCategoryField").textContent = orDash(data.imageCategory);
+        const imagePreview = document.getElementById("imagePreview");
+        const imageMainLink = document.getElementById("imageMainLink");
+        const imageList = document.getElementById("imageList");
+        const imageCountTag = document.getElementById("imageCountTag");
+        const imageOpenFirst = document.getElementById("imageOpenFirst");
+        const imageCountInput = document.getElementById("imageCountInput");
+        const imageCountHint = document.getElementById("imageCountHint");
+        const imageAutoNumber = document.getElementById("imageAutoNumber");
 
-imagePreview.innerHTML = "";
-imageList.innerHTML = "";
-imageOpenFirst.classList.add("disabled");
-imageOpenFirst.href = "#";
+        imagePreview.innerHTML = "";
+        imageMainLink.textContent = "";
+        imageList.innerHTML = "";
+        imageOpenFirst.classList.add("disabled");
+        imageOpenFirst.href = "#";
 
-const links = data.imageLinks || [];
-const slidesCount = data.slides.length || 0;
-const autoNumber = slidesCount + 1;  // ESTE ES EL NÚMERO QUE QUIERES
-
-imageCountTag.textContent = links.length + " imagen" + (links.length === 1 ? "" : "es");
-imageCountInput.value = Math.min(links.length || 1, autoNumber || links.length || 1);
-imageCountInput.max = links.length || 1;
-imageCountHint.textContent = links.length
-  ? `(máx ${links.length}, recomendado ${Math.min(links.length, autoNumber)})`
-  : "No se detectaron imágenes";
-
-// Mostrar el número encima de la imagen (solo si hay imágenes)
-if (links.length) {
-  imageAutoNumber.textContent = autoNumber;
-} else {
-  imageAutoNumber.textContent = "";
-}
-
-if (links.length) {
-  const first = links[0];
-  const img = document.createElement("img");
-  img.src = first;
-  img.alt = "Imagen 1";
-  imagePreview.appendChild(img);
-
-  imageOpenFirst.href = first;
-  imageOpenFirst.classList.remove("disabled");
-
-  links.forEach((url, idx) => {
-    const div = document.createElement("div");
-    div.className = "image-link-item";
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.textContent = `Imagen ${idx + 1}: ${url}`;
-    div.appendChild(a);
-    imageList.appendChild(div);
-  });
-}
+        const links = data.imageLinks || [];
+        const slidesCount = data.slides.length || 0;
+        const autoNumber = slidesCount + 1;
 
         imageCountTag.textContent = links.length + " imagen" + (links.length === 1 ? "" : "es");
-        imageCountInput.value = Math.min(links.length || 1, data.slides.length + 1 || links.length || 1);
+        imageCountInput.value = Math.min(links.length || 1, autoNumber || links.length || 1);
         imageCountInput.max = links.length || 1;
         imageCountHint.textContent = links.length
-          ? `(máx ${links.length}, recomendado ${Math.min(links.length, (data.slides.length || 0) + 1)})`
+          ? `(máx ${links.length}, recomendado ${Math.min(links.length, autoNumber)})`
           : "No se detectaron imágenes";
 
         if (links.length) {
+          imageAutoNumber.textContent = autoNumber;
+
           const first = links[0];
           const img = document.createElement("img");
           img.src = first;
           img.alt = "Imagen 1";
           imagePreview.appendChild(img);
+
+          imageMainLink.textContent = first;
 
           imageOpenFirst.href = first;
           imageOpenFirst.classList.remove("disabled");
@@ -762,13 +751,13 @@ if (links.length) {
             div.appendChild(a);
             imageList.appendChild(div);
           });
+        } else {
+          imageAutoNumber.textContent = "";
         }
 
         // Título, caption, géneros, hashtags
         document.getElementById("bookInfoField").textContent = data.bookInfo || "";
-
-        const captionField = document.getElementById("captionField");
-        captionField.textContent = data.caption || "";
+        document.getElementById("captionField").textContent = data.caption || "";
 
         const genresList = document.getElementById("genresList");
         genresList.innerHTML = "";
@@ -780,6 +769,14 @@ if (links.length) {
 
         document.getElementById("hashtagsField").textContent = data.hashtags || "";
 
+        // Combo caption + géneros + hashtags
+        const combo = [
+          data.caption || "",
+          (data.genres || []).join("\n"),
+          data.hashtags || ""
+        ].filter(s => s && s.trim()).join("\n\n");
+        document.getElementById("comboField").textContent = combo;
+
         attachCopyHandlers();
       }
 
@@ -787,7 +784,6 @@ if (links.length) {
         if (!links || !links.length) return;
         let n = parseInt(requestedCount, 10);
         if (isNaN(n) || n <= 0) n = 1;
-
         const maxBySlides = slidesCount ? slidesCount + 1 : links.length;
         const max = Math.min(links.length, maxBySlides, n);
         const selected = links.slice(0, max);
