@@ -186,34 +186,6 @@
       font-weight: 500;
       color: #e5e7eb;
     }
-    .image-actions {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      margin-top: 0.5rem;
-    }
-    .image-actions a,
-    .image-actions button {
-      font-size: 0.8rem;
-      text-decoration: none;
-      padding: 0.35rem 0.8rem;
-      border-radius: 999px;
-      border: 1px solid #374151;
-      background: #020617;
-      color: #e5e7eb;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      cursor: pointer;
-    }
-    .image-actions a:hover,
-    .image-actions button:hover {
-      background: #111827;
-    }
-    .image-actions a.disabled {
-      opacity: 0.5;
-      pointer-events: none;
-    }
     .status {
       font-size: 0.8rem;
       color: #9ca3af;
@@ -273,7 +245,7 @@
       <h1>Parser de contenido para posts</h1>
       <p class="subtitle">
         Pega todo el texto (usuario, imágenes, audio, slides, título, caption, géneros, hashtags)
-        y te lo ordeno para copiar rápido y abrir imágenes en iPhone.
+        y te lo ordeno para copiar rápido y usarlo en TikTok.
       </p>
     </header>
 
@@ -290,7 +262,7 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
           ⚙️ Procesar texto
         </button>
         <span class="hint">
-          Las imágenes se abrirán en pestañas nuevas (hasta el número que elijas).
+          Las imágenes solo se mostrarán como links (sin botones de descarga).
         </span>
       </div>
     </section>
@@ -333,23 +305,8 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
 
         <!-- link principal de la imagen -->
         <div id="imageMainLink" class="text-block"></div>
+        <!-- lista de todos los links (solo texto) -->
         <div id="imageList"></div>
-
-        <div class="field-row" style="margin-top:0.4rem;">
-          <strong>Cantidad a abrir:</strong>
-          <input id="imageCountInput" type="number" min="1" value="1"
-                 style="width:70px;border-radius:999px;border:1px solid #4b5563;background:#020617;color:#e5e7eb;padding:0.2rem 0.4rem;" />
-          <span class="hint" id="imageCountHint"></span>
-        </div>
-
-        <div class="image-actions">
-          <a href="#" id="imageOpenFirst" target="_blank" rel="noopener noreferrer" class="disabled">
-            🌐 Abrir primera
-          </a>
-          <button id="openAllBtn" class="btn-secondary">
-            ⬇️ Abrir/descargar N imágenes
-          </button>
-        </div>
       </div>
 
       <!-- 3. AUDIO -->
@@ -382,31 +339,13 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
         <div id="slidesContainer" class="slides-list"></div>
       </div>
 
-      <!-- 5. TÍTULO + 6. CAPTION + 7. GÉNEROS + 8. HASHTAGS + combo -->
+      <!-- 5. TÍTULO + combo -->
       <div class="card">
         <h2>
           Título (Libro / Autor / Tropes)
           <button class="copy-btn" data-copy="bookInfoField">📋 Copiar título</button>
         </h2>
         <div id="bookInfoField" class="text-block"></div>
-
-        <h2 style="margin-top:0.8rem;">
-          Caption
-          <button class="copy-btn" data-copy="captionField">📋 Copiar caption</button>
-        </h2>
-        <pre id="captionField"></pre>
-
-        <h2 style="margin-top:0.8rem;">
-          Géneros / etiquetas
-          <button class="copy-btn" id="copyGenresBtn">📋 Copiar géneros</button>
-        </h2>
-        <ul id="genresList"></ul>
-
-        <h2 style="margin-top:0.8rem;">
-          Hashtags
-          <button class="copy-btn" data-copy="hashtagsField">📋 Copiar hashtags</button>
-        </h2>
-        <pre id="hashtagsField"></pre>
 
         <h2 style="margin-top:0.8rem;">
           Caption + géneros + hashtags
@@ -640,9 +579,7 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
         if (data.soundLink) parts.push("audio");
         if (data.slides.length) parts.push(data.slides.length + " slides");
         if (data.bookInfo) parts.push("título");
-        if (data.caption) parts.push("caption");
-        if (data.genres.length) parts.push("géneros");
-        if (data.hashtags) parts.push("hashtags");
+        if (data.caption || data.genres.length || data.hashtags) parts.push("combo texto");
 
         statusMessage.textContent = parts.length
           ? "Detectado: " + parts.join(" · ")
@@ -702,40 +639,27 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
           slidesContainer.appendChild(wrap);
         });
 
-        // Imágenes
+        // Imágenes (solo links)
         document.getElementById("imageCategoryField").textContent = orDash(data.imageCategory);
         const imageMainLink = document.getElementById("imageMainLink");
         const imageList = document.getElementById("imageList");
         const imageCountTag = document.getElementById("imageCountTag");
-        const imageOpenFirst = document.getElementById("imageOpenFirst");
-        const imageCountInput = document.getElementById("imageCountInput");
-        const imageCountHint = document.getElementById("imageCountHint");
         const imageAutoNumber = document.getElementById("imageAutoNumber");
 
         imageMainLink.textContent = "";
         imageList.innerHTML = "";
-        imageOpenFirst.classList.add("disabled");
-        imageOpenFirst.href = "#";
 
         const links = data.imageLinks || [];
         const slidesCount = data.slides.length || 0;
         const autoNumber = slidesCount + 1;
 
         imageCountTag.textContent = links.length + " imagen" + (links.length === 1 ? "" : "es");
-        imageCountInput.value = Math.min(links.length || 1, autoNumber || links.length || 1);
-        imageCountInput.max = links.length || 1;
-        imageCountHint.textContent = links.length
-          ? `(máx ${links.length}, recomendado ${Math.min(links.length, autoNumber)})`
-          : "No se detectaron imágenes";
 
         if (links.length) {
           imageAutoNumber.textContent = autoNumber;
 
           const first = links[0];
           imageMainLink.textContent = first;
-
-          imageOpenFirst.href = first;
-          imageOpenFirst.classList.remove("disabled");
 
           links.forEach((url, idx) => {
             const div = document.createElement("div");
@@ -752,19 +676,8 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
           imageAutoNumber.textContent = "";
         }
 
-        // Título, caption, géneros, hashtags
+        // Título
         document.getElementById("bookInfoField").textContent = data.bookInfo || "";
-        document.getElementById("captionField").textContent = data.caption || "";
-
-        const genresList = document.getElementById("genresList");
-        genresList.innerHTML = "";
-        (data.genres || []).forEach(g => {
-          const li = document.createElement("li");
-          li.textContent = g;
-          genresList.appendChild(li);
-        });
-
-        document.getElementById("hashtagsField").textContent = data.hashtags || "";
 
         // Combo caption + géneros + hashtags
         const combo = [
@@ -775,27 +688,6 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
         document.getElementById("comboField").textContent = combo;
 
         attachCopyHandlers();
-      }
-
-      function openImagesQueue(links, slidesCount, requestedCount) {
-        if (!links || !links.length) return;
-        let n = parseInt(requestedCount, 10);
-        if (isNaN(n) || n <= 0) n = 1;
-        const maxBySlides = slidesCount ? slidesCount + 1 : links.length;
-        const max = Math.min(links.length, maxBySlides, n);
-        const selected = links.slice(0, max);
-
-        selected.forEach(url => {
-          const a = document.createElement("a");
-          a.href = url;
-          a.target = "_blank";
-          a.rel = "noopener noreferrer";
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        });
-
-        alert(`Se abrieron ${selected.length} imágenes.\nEn iPhone, revisa las pestañas/vistas y guarda cada imagen.`);
       }
 
       // Botón para pegar desde el portapapeles
@@ -810,10 +702,10 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
               alert("Tu portapapeles está vacío o el navegador no permitió leerlo.");
             }
           } catch (e) {
-            alert("No se pudo leer el portapapeles. Pega manualmente (mantén pulsado y pega).");
+            alert("En iPhone esto a veces falla. Pega manualmente (mantén pulsado en el cuadro y elige 'Pegar').");
           }
         } else {
-          alert("Tu navegador no permite pegar desde JavaScript. Pega el texto manualmente.");
+          alert("Tu navegador no permite leer el portapapeles desde aquí. Pega el texto manualmente.");
         }
       });
 
@@ -822,24 +714,6 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Image(s)'
         const parsed = parseInput(raw);
         lastParsed = parsed;
         renderResults(parsed);
-      });
-
-      document.getElementById("openAllBtn").addEventListener("click", () => {
-        if (!lastParsed) return;
-        const links = lastParsed.imageLinks || [];
-        if (!links.length) return;
-        const countInput = document.getElementById("imageCountInput");
-        openImagesQueue(links, lastParsed.slides.length || 0, countInput.value);
-      });
-
-      document.getElementById("copyGenresBtn").addEventListener("click", async () => {
-        if (!lastParsed || !lastParsed.genres.length) return;
-        const text = lastParsed.genres.join("\n");
-        const btn = document.getElementById("copyGenresBtn");
-        const original = btn.textContent;
-        await copyToClipboard(text);
-        btn.textContent = "✅ Copiado";
-        setTimeout(() => { btn.textContent = original; }, 1200);
       });
 
       attachCopyHandlers();
