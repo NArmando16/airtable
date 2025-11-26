@@ -96,23 +96,13 @@
       font-size: 0.8rem;
       color: #9ca3af;
     }
-    .grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    @media (max-width: 900px) {
-      .grid {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
     .card {
       background: #020617;
       border-radius: 0.9rem;
       padding: 1rem 1.1rem;
       border: 1px solid #1f2937;
       box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+      margin-bottom: 1rem;
     }
     .card h2 {
       font-size: 1rem;
@@ -169,16 +159,6 @@
     }
     .copy-btn:hover {
       background: #111827;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.1rem 0.5rem;
-      border-radius: 999px;
-      font-size: 0.7rem;
-      background: #111827;
-      margin-right: 0.25rem;
-      margin-bottom: 0.25rem;
     }
     .slides-list {
       display: flex;
@@ -241,25 +221,6 @@
       opacity: 0.5;
       pointer-events: none;
     }
-    ul {
-      padding-left: 1.1rem;
-      margin: 0.3rem 0 0.5rem;
-      font-size: 0.9rem;
-    }
-    .hidden {
-      display: none !important;
-    }
-    .pill {
-      font-size: 0.75rem;
-      padding: 0.1rem 0.6rem;
-      border-radius: 999px;
-      background: #111827;
-      border: 1px solid #1f2937;
-      color: #9ca3af;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-    }
     .status {
       font-size: 0.8rem;
       color: #9ca3af;
@@ -277,8 +238,24 @@
     .image-link-item a:hover {
       text-decoration: underline;
     }
+    .image-auto-number {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-top: 0.6rem;
+    margin-bottom: 0.2rem;
+    text-align: center;
+    color: #e5e7eb;
+  }
 
-    /* Mobile tweaks */
+    ul {
+      padding-left: 1.1rem;
+      margin: 0.3rem 0 0.5rem;
+      font-size: 0.9rem;
+    }
+    .hidden {
+      display: none !important;
+    }
+
     @media (max-width: 600px) {
       body {
         padding: 1.25rem 0.5rem;
@@ -304,8 +281,8 @@
     <header>
       <h1>Parser de contenido para posts</h1>
       <p class="subtitle">
-        Pega todo el texto que te mandan (OrderID, Sound Link, Caption, Slides, Imágenes, Hashtags)
-        y el sistema lo separa en bloques copiables y te abre varias imágenes a la vez (cola de descargas).
+        Pega todo el texto (usuario, imágenes, audio, slides, título, caption, géneros, hashtags)
+        y te lo ordeno para copiar rápido y abrir imágenes en iPhone.
       </p>
     </header>
 
@@ -317,8 +294,7 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
           ⚙️ Procesar texto
         </button>
         <span class="hint">
-          Tip: Bajo <strong>Link Cover Images</strong> puedes poner varias URLs (1 por línea).
-          El botón abrirá como máximo <strong>slides + 1</strong> imágenes en pestañas nuevas.
+          Las imágenes se abrirán en pestañas nuevas (hasta el número que elijas).
         </span>
       </div>
     </section>
@@ -326,108 +302,116 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
     <section id="results" class="hidden">
       <p id="statusMessage" class="status"></p>
 
-      <div class="grid">
-        <!-- Columna izquierda -->
-        <div class="card">
-          <h2>
-            Datos generales
-            <span class="tag">Metadata</span>
-          </h2>
-          <div class="field-row">
-            <strong>OrderID:</strong> <span id="orderIdField">—</span>
-          </div>
-          <div class="field-row">
-            <strong>Día de orden:</strong> <span id="orderDayField">—</span>
-          </div>
-          <div class="field-row">
-            <strong>Cuenta:</strong> <span id="accountField">—</span>
-          </div>
-          <div class="field-row">
-            <strong>Crew:</strong> <span id="crewField">—</span>
-          </div>
-          <div class="field-row">
-            <strong>Device:</strong> <span id="deviceField">—</span>
-          </div>
-          <div class="field-row" style="margin-top:0.4rem;">
-            <strong>Tipo de post:</strong> <span id="typeField" class="badge">—</span>
-          </div>
-          <hr style="border: none; border-top: 1px solid #111827; margin: 0.8rem 0;" />
-          <div class="field-row">
-            <strong>Sound link:</strong>
-          </div>
-          <div class="field-row">
-            <a id="soundLinkField" href="#" target="_blank" rel="noopener noreferrer" class="pill">
-              🎵 Abrir sonido
-            </a>
-          </div>
+      <!-- 1. USUARIO -->
+      <div class="card">
+        <h2>
+          Usuario
+          <span class="tag">Cuenta</span>
+        </h2>
+        <div class="field-row">
+          <strong>Usuario / Cuenta:</strong> <span id="accountField">—</span>
         </div>
-
-        <!-- Columna derecha -->
-        <div class="card">
-          <h2>
-            Caption
-            <button class="copy-btn" data-copy="captionField">📋 Copiar</button>
-          </h2>
-          <pre id="captionField"></pre>
+        <div class="field-row">
+          <strong>OrderID:</strong> <span id="orderIdField">—</span>
+        </div>
+        <div class="field-row">
+          <strong>Crew:</strong> <span id="crewField">—</span>
+        </div>
+        <div class="field-row">
+          <strong>Device:</strong> <span id="deviceField">—</span>
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:1.5rem;">
+      <!-- 2. IMÁGENES -->
+      <div class="card">
+        <h2>
+          Imágenes
+          <span class="tag" id="imageCountTag">0 imágenes</span>
+        </h2>
+        <div class="field-row">
+    <strong>Categoría:</strong> <span id="imageCategoryField">—</span>
+  </div>
+
+<!-- AQUÍ APARECE EL NÚMERO = slides + 1 -->
+<div id="imageAutoNumber" class="image-auto-number"></div>
+
+<div class="image-preview" id="imagePreview"></div>
+<div id="imageList"></div>
+
+
+        <div class="field-row" style="margin-top:0.4rem;">
+          <strong>Cantidad a abrir:</strong>
+          <input id="imageCountInput" type="number" min="1" value="1"
+                 style="width:70px;border-radius:999px;border:1px solid #4b5563;background:#020617;color:#e5e7eb;padding:0.2rem 0.4rem;" />
+          <span class="hint" id="imageCountHint"></span>
+        </div>
+
+        <div class="image-actions">
+          <a href="#" id="imageOpenFirst" target="_blank" rel="noopener noreferrer" class="disabled">
+            🌐 Abrir primera
+          </a>
+          <button id="openAllBtn" class="btn-secondary">
+            ⬇️ Abrir/descargar N imágenes
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. AUDIO -->
+      <div class="card">
+        <h2>
+          Audio
+          <span class="tag">Sound Link</span>
+        </h2>
+        <div class="field-row">
+          <strong>Link del audio:</strong>
+        </div>
+        <div class="field-row">
+          <a id="soundLinkField" href="#" target="_blank" rel="noopener noreferrer"
+             style="font-size:0.9rem;color:#93c5fd;text-decoration:none;">
+            🎵 Abrir audio
+          </a>
+        </div>
+        <div class="field-row">
+          <small class="hint">Copia el link desde aquí si lo necesitas:</small>
+        </div>
+        <pre id="soundLinkCopy"></pre>
+      </div>
+
+      <!-- 4. SLIDES -->
+      <div class="card">
         <h2>
           Slides
           <span class="tag" id="slidesCountTag">0 slides</span>
+          <button class="copy-btn" id="copyAllSlidesBtn">📋 Copiar todas las slides</button>
         </h2>
         <div id="slidesContainer" class="slides-list"></div>
       </div>
 
-      <div class="grid">
-        <div class="card">
-          <h2>
-            Imágenes
-            <span class="tag" id="imageCountTag">0 imágenes</span>
-          </h2>
-          <div class="field-row">
-            <strong>Categoría:</strong> <span id="imageCategoryField">—</span>
-          </div>
-          <p class="hint" style="margin-top:0.3rem;">
-            Se abrirán como máximo <strong>nº de slides + 1</strong> imágenes en diferentes pestañas.
-            En iPhone, desde cada pestaña puedes mantener pulsado la imagen y elegir <em>Guardar imagen</em>.
-          </p>
-          <div class="image-preview" id="imagePreview"></div>
-          <div id="imageList"></div>
-          <div class="image-actions">
-            <a href="#" id="imageOpenFirst" target="_blank" rel="noopener noreferrer" class="disabled">
-              🌐 Abrir primera
-            </a>
-            <a href="#" id="imageDownloadFirst" download="imagen_1.jpg" class="disabled">
-              ⬇️ Descargar primera
-            </a>
-            <button id="downloadAllBtn" class="btn-secondary">
-              ⬇️ Abrir/descargar todas
-            </button>
-          </div>
-        </div>
+      <!-- 5. TÍTULO + 6. CAPTION + 7. GÉNEROS + 8. HASHTAGS -->
+      <div class="card">
+        <h2>
+          Título (Libro / Autor / Tropes)
+          <button class="copy-btn" data-copy="bookInfoField">📋 Copiar título</button>
+        </h2>
+        <div id="bookInfoField" class="text-block"></div>
 
-        <div class="card">
-          <h2>
-            Libro, géneros y hashtags
-          </h2>
-          <div class="field-row">
-            <strong>Libro / Autor / Tropes:</strong>
-          </div>
-          <div id="bookInfoField" class="text-block"></div>
+        <h2 style="margin-top:0.8rem;">
+          Caption
+          <button class="copy-btn" data-copy="captionField">📋 Copiar caption</button>
+        </h2>
+        <pre id="captionField"></pre>
 
-          <div class="field-row" style="margin-top:0.4rem;">
-            <strong>Géneros / etiquetas:</strong>
-          </div>
-          <ul id="genresList"></ul>
+        <h2 style="margin-top:0.8rem;">
+          Géneros / etiquetas
+          <button class="copy-btn" id="copyGenresBtn">📋 Copiar géneros</button>
+        </h2>
+        <ul id="genresList"></ul>
 
-          <div class="field-row" style="margin-top:0.4rem;">
-            <strong>Hashtags:</strong>
-            <button class="copy-btn" data-copy="hashtagsField">📋 Copiar hashtags</button>
-          </div>
-          <pre id="hashtagsField"></pre>
-        </div>
+        <h2 style="margin-top:0.8rem;">
+          Hashtags
+          <button class="copy-btn" data-copy="hashtagsField">📋 Copiar hashtags</button>
+        </h2>
+        <pre id="hashtagsField"></pre>
       </div>
     </section>
 
@@ -443,29 +427,18 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
         caption: "",
         slides: [],
         imageCategory: "",
-        imageLinks: [],   // varias imágenes
+        imageLinks: [],
         bookInfo: "",
         genres: [],
         hashtags: ""
       });
 
-      let lastParsed = null; // guardamos el último parseo para la cola de descargas
+      let lastParsed = null;
 
-      // Detecta si una línea es encabezado de slide:
-      // - "Slide 1"
-      // - "Slide four"
-      // - "[Slide 2]"
-      // - "3", "4.", "10)"
       function isSlideHeader(line, inSlidesSection) {
         const trimmed = line.trim();
-
-        // 1) Empieza con "slide"
         if (/^slide\b/i.test(trimmed)) return true;
-
-        // 2) "[Slide 2]"
         if (/^\[\s*slide\b.*\]$/i.test(trimmed)) return true;
-
-        // 3) Solo números si ya estamos en la sección de slides
         if (inSlidesSection) {
           const m = /^(\d{1,2})(?:[.)])?$/.exec(trimmed);
           if (m) {
@@ -473,7 +446,6 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
             if (n >= 1 && n <= 50) return true;
           }
         }
-
         return false;
       }
 
@@ -493,12 +465,9 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
           const lower = line.toLowerCase();
 
           const takeNext = (setter) => {
-            if (i + 1 < lines.length) {
-              setter(lines[i + 1]);
-            }
+            if (i + 1 < lines.length) setter(lines[i + 1]);
           };
 
-          // Metadata
           if (lower === "orderid") {
             takeNext(v => result.orderId = v);
           } else if (lower === "dia de orden") {
@@ -515,12 +484,10 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
             takeNext(v => result.typeOfPost = v);
           }
 
-          // Marcamos que empieza la sección de texto/slides
           if (/^text to use on post/i.test(line)) {
             inSlidesSection = true;
           }
 
-          // Caption
           if (/^caption:?/i.test(line)) {
             let captionInline = line.replace(/^caption:?/i, "").trim();
             if (captionInline) {
@@ -530,7 +497,6 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
             }
           }
 
-          // Slides
           if (isSlideHeader(line, inSlidesSection)) {
             const title = line;
             const bodyLines = [];
@@ -538,7 +504,6 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
             for (; j < lines.length; j++) {
               const l2 = lines[j];
               const l2lower = l2.toLowerCase();
-
               if (isSlideHeader(l2, inSlidesSection) ||
                   l2lower.startsWith("images for post") ||
                   l2lower.startsWith("link cover images") ||
@@ -548,22 +513,17 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
               }
               bodyLines.push(l2);
             }
-            result.slides.push({
-              title,
-              text: bodyLines.join("\n").trim()
-            });
+            result.slides.push({ title, text: bodyLines.join("\n").trim() });
             i = j - 1;
             continue;
           }
 
-          // Imágenes (categoría)
           if (lower.startsWith("images for post")) {
             if (i + 1 < lines.length) {
               result.imageCategory = lines[i + 1];
             }
           }
 
-          // Imágenes (varias URLs bajo Link Cover Images)
           if (lower.startsWith("link cover images")) {
             let j = i + 1;
             for (; j < lines.length; j++) {
@@ -581,7 +541,6 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
             i = j - 1;
           }
 
-          // Libro / géneros / hashtags
           if (lower.startsWith("book - author - tropes")) {
             if (i + 1 < lines.length) {
               result.bookInfo = lines[i + 1];
@@ -615,9 +574,7 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
           try {
             await navigator.clipboard.writeText(text);
             return;
-          } catch (e) {
-            // fallback
-          }
+          } catch {}
         }
         const textarea = document.createElement("textarea");
         textarea.value = text;
@@ -628,11 +585,8 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
         textarea.select();
         try {
           document.execCommand("copy");
-        } catch (e) {
-          console.error("No se pudo copiar al portapapeles", e);
-        } finally {
-          document.body.removeChild(textarea);
-        }
+        } catch {}
+        document.body.removeChild(textarea);
       }
 
       function attachCopyHandlers() {
@@ -646,9 +600,7 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
             const original = btn.textContent;
             await copyToClipboard(text);
             btn.textContent = "✅ Copiado";
-            setTimeout(() => {
-              btn.textContent = original;
-            }, 1200);
+            setTimeout(() => { btn.textContent = original; }, 1200);
           };
         });
       }
@@ -658,48 +610,47 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
         const statusMessage = document.getElementById("statusMessage");
         resultsSection.classList.remove("hidden");
 
-        const foundSlides = data.slides.length;
         const parts = [];
+        if (data.cuenta) parts.push("usuario");
+        if (data.imageLinks.length) parts.push(data.imageLinks.length + " imágenes");
+        if (data.soundLink) parts.push("audio");
+        if (data.slides.length) parts.push(data.slides.length + " slides");
+        if (data.bookInfo) parts.push("título");
         if (data.caption) parts.push("caption");
-        if (foundSlides) parts.push(foundSlides + " slides");
-        if ((data.imageLinks || []).length) parts.push(data.imageLinks.length + " imágenes");
+        if (data.genres.length) parts.push("géneros");
         if (data.hashtags) parts.push("hashtags");
+
         statusMessage.textContent = parts.length
           ? "Detectado: " + parts.join(" · ")
-          : "No se detectaron bloques con el formato esperado. Revisa que los encabezados (Caption, Slides, etc.) estén bien escritos.";
+          : "No se detectaron bloques con el formato esperado.";
 
         const orDash = v => v && v.trim() ? v : "—";
 
-        document.getElementById("orderIdField").textContent = orDash(data.orderId);
-        document.getElementById("orderDayField").textContent = orDash(data.diaOrden);
         document.getElementById("accountField").textContent = orDash(data.cuenta);
+        document.getElementById("orderIdField").textContent = orDash(data.orderId);
         document.getElementById("crewField").textContent = orDash(data.crew);
         document.getElementById("deviceField").textContent = orDash(data.device);
 
-        const typeField = document.getElementById("typeField");
-        typeField.textContent = orDash(data.typeOfPost);
-
         const soundLinkField = document.getElementById("soundLinkField");
+        const soundLinkCopy = document.getElementById("soundLinkCopy");
         if (data.soundLink && data.soundLink.startsWith("http")) {
           soundLinkField.href = data.soundLink;
-          soundLinkField.classList.remove("disabled");
+          soundLinkField.textContent = "🎵 Abrir audio";
+          soundLinkCopy.textContent = data.soundLink;
         } else {
           soundLinkField.href = "#";
+          soundLinkField.textContent = "Sin audio detectado";
+          soundLinkCopy.textContent = "";
         }
-
-        // Caption
-        const captionField = document.getElementById("captionField");
-        captionField.textContent = data.caption || "";
 
         // Slides
         const slidesContainer = document.getElementById("slidesContainer");
-        slidesContainer.innerHTML = "";
         const slidesCountTag = document.getElementById("slidesCountTag");
+        slidesContainer.innerHTML = "";
         slidesCountTag.textContent = data.slides.length + " slide" + (data.slides.length === 1 ? "" : "s");
 
         data.slides.forEach((slide, idx) => {
           const slideId = "slide_" + idx;
-
           const wrap = document.createElement("div");
           wrap.className = "slide-item";
 
@@ -728,37 +679,77 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
         });
 
         // Imágenes
-        const imageCategoryField = document.getElementById("imageCategoryField");
-        imageCategoryField.textContent = orDash(data.imageCategory);
+      document.getElementById("imageCategoryField").textContent = orDash(data.imageCategory);
+const imagePreview = document.getElementById("imagePreview");
+const imageList = document.getElementById("imageList");
+const imageCountTag = document.getElementById("imageCountTag");
+const imageOpenFirst = document.getElementById("imageOpenFirst");
+const imageCountInput = document.getElementById("imageCountInput");
+const imageCountHint = document.getElementById("imageCountHint");
+const imageAutoNumber = document.getElementById("imageAutoNumber");
 
-        const imagePreview = document.getElementById("imagePreview");
-        const imageList = document.getElementById("imageList");
-        const imageCountTag = document.getElementById("imageCountTag");
-        const imageOpenFirst = document.getElementById("imageOpenFirst");
-        const imageDownloadFirst = document.getElementById("imageDownloadFirst");
+imagePreview.innerHTML = "";
+imageList.innerHTML = "";
+imageOpenFirst.classList.add("disabled");
+imageOpenFirst.href = "#";
 
-        imagePreview.innerHTML = "";
-        imageList.innerHTML = "";
-        imageOpenFirst.classList.add("disabled");
-        imageDownloadFirst.classList.add("disabled");
-        imageOpenFirst.href = "#";
-        imageDownloadFirst.href = "#";
+const links = data.imageLinks || [];
+const slidesCount = data.slides.length || 0;
+const autoNumber = slidesCount + 1;  // ESTE ES EL NÚMERO QUE QUIERES
 
-        const links = data.imageLinks || [];
+imageCountTag.textContent = links.length + " imagen" + (links.length === 1 ? "" : "es");
+imageCountInput.value = Math.min(links.length || 1, autoNumber || links.length || 1);
+imageCountInput.max = links.length || 1;
+imageCountHint.textContent = links.length
+  ? `(máx ${links.length}, recomendado ${Math.min(links.length, autoNumber)})`
+  : "No se detectaron imágenes";
+
+// Mostrar el número encima de la imagen (solo si hay imágenes)
+if (links.length) {
+  imageAutoNumber.textContent = autoNumber;
+} else {
+  imageAutoNumber.textContent = "";
+}
+
+if (links.length) {
+  const first = links[0];
+  const img = document.createElement("img");
+  img.src = first;
+  img.alt = "Imagen 1";
+  imagePreview.appendChild(img);
+
+  imageOpenFirst.href = first;
+  imageOpenFirst.classList.remove("disabled");
+
+  links.forEach((url, idx) => {
+    const div = document.createElement("div");
+    div.className = "image-link-item";
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = `Imagen ${idx + 1}: ${url}`;
+    div.appendChild(a);
+    imageList.appendChild(div);
+  });
+}
+
         imageCountTag.textContent = links.length + " imagen" + (links.length === 1 ? "" : "es");
+        imageCountInput.value = Math.min(links.length || 1, data.slides.length + 1 || links.length || 1);
+        imageCountInput.max = links.length || 1;
+        imageCountHint.textContent = links.length
+          ? `(máx ${links.length}, recomendado ${Math.min(links.length, (data.slides.length || 0) + 1)})`
+          : "No se detectaron imágenes";
 
         if (links.length) {
           const first = links[0];
           const img = document.createElement("img");
           img.src = first;
-          img.alt = "Imagen de portada / slide 1";
+          img.alt = "Imagen 1";
           imagePreview.appendChild(img);
 
           imageOpenFirst.href = first;
           imageOpenFirst.classList.remove("disabled");
-
-          imageDownloadFirst.href = first;
-          imageDownloadFirst.classList.remove("disabled");
 
           links.forEach((url, idx) => {
             const div = document.createElement("div");
@@ -773,8 +764,11 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
           });
         }
 
-        // Libro / géneros / hashtags
+        // Título, caption, géneros, hashtags
         document.getElementById("bookInfoField").textContent = data.bookInfo || "";
+
+        const captionField = document.getElementById("captionField");
+        captionField.textContent = data.caption || "";
 
         const genresList = document.getElementById("genresList");
         genresList.innerHTML = "";
@@ -789,16 +783,19 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
         attachCopyHandlers();
       }
 
-      // Abre varias imágenes a la vez (cola de descargas) -> pestañas nuevas
-      function openAllImagesQueue(links, slidesCount) {
+      function openImagesQueue(links, slidesCount, requestedCount) {
         if (!links || !links.length) return;
-        const max = slidesCount ? Math.min(links.length, slidesCount + 1) : links.length;
+        let n = parseInt(requestedCount, 10);
+        if (isNaN(n) || n <= 0) n = 1;
+
+        const maxBySlides = slidesCount ? slidesCount + 1 : links.length;
+        const max = Math.min(links.length, maxBySlides, n);
         const selected = links.slice(0, max);
 
-        selected.forEach((url, idx) => {
+        selected.forEach(url => {
           const a = document.createElement("a");
           a.href = url;
-          a.target = "_blank"; // pestaña nueva (en iPhone pasa a nueva vista)
+          a.target = "_blank";
           a.rel = "noopener noreferrer";
           document.body.appendChild(a);
           a.click();
@@ -808,7 +805,6 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
         alert(`Se abrieron ${selected.length} imágenes.\nEn iPhone, revisa las pestañas/vistas y guarda cada imagen.`);
       }
 
-      // Eventos
       document.getElementById("processBtn").addEventListener("click", () => {
         const raw = document.getElementById("rawInput").value || "";
         const parsed = parseInput(raw);
@@ -816,20 +812,35 @@ Asegúrate de poner TODOS los links de imágenes debajo de 'Link Cover Images', 
         renderResults(parsed);
       });
 
-      document.getElementById("downloadAllBtn").addEventListener("click", () => {
+      document.getElementById("openAllBtn").addEventListener("click", () => {
         if (!lastParsed) return;
         const links = lastParsed.imageLinks || [];
         if (!links.length) return;
-        const btn = document.getElementById("downloadAllBtn");
+        const countInput = document.getElementById("imageCountInput");
+        openImagesQueue(links, lastParsed.slides.length || 0, countInput.value);
+      });
+
+      document.getElementById("copyAllSlidesBtn").addEventListener("click", async () => {
+        if (!lastParsed || !lastParsed.slides.length) return;
+        const all = lastParsed.slides
+          .map(s => (s.title ? s.title + "\n" : "") + (s.text || ""))
+          .join("\n\n");
+        if (!all.trim()) return;
+        const btn = document.getElementById("copyAllSlidesBtn");
         const original = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = "Abriendo imágenes...";
-        try {
-          openAllImagesQueue(links, lastParsed.slides.length || 0);
-        } finally {
-          btn.disabled = false;
-          btn.textContent = original;
-        }
+        await copyToClipboard(all);
+        btn.textContent = "✅ Slides copiadas";
+        setTimeout(() => { btn.textContent = original; }, 1200);
+      });
+
+      document.getElementById("copyGenresBtn").addEventListener("click", async () => {
+        if (!lastParsed || !lastParsed.genres.length) return;
+        const text = lastParsed.genres.join("\n");
+        const btn = document.getElementById("copyGenresBtn");
+        const original = btn.textContent;
+        await copyToClipboard(text);
+        btn.textContent = "✅ Copiado";
+        setTimeout(() => { btn.textContent = original; }, 1200);
       });
 
       attachCopyHandlers();
