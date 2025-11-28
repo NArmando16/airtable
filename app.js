@@ -55,9 +55,9 @@ function parseInput(raw) {
 
   let inSlidesSection = false;
 
-  // Caption: acepta "Caption:", "🖤caption:", "Tik Tok Caption:", etc.
+  // Caption: acepta "Caption:", "🖤caption:", "Tik Tok Caption:", "Tiktok Caption:", etc.
   const captionRegex =
-    /^[^a-zA-Z0-9]*((tik\s*tok\s+caption)|(tiktok\s+caption)|caption)\b\s*:??\s*/i;
+    /^[^\w]*((tik\s*tok\s+caption)|(tiktok\s+caption)|caption)\b\s*:?\s*/i;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -282,52 +282,51 @@ function renderOrderList() {
     orders.length + " orden" + (orders.length === 1 ? "" : "es");
 
   orders.forEach(order => {
-  const item = document.createElement("div");
-  item.className =
-    "order-item" + (order.id === currentOrderId ? " order-item-active" : "");
+    const item = document.createElement("div");
+    item.className =
+      "order-item" + (order.id === currentOrderId ? " order-item-active" : "");
 
-  const main = document.createElement("div");
-  main.className = "order-main";
+    const main = document.createElement("div");
+    main.className = "order-main";
 
-  // Flecha que indica la orden actualmente abierta
-  const arrow = document.createElement("span");
-  arrow.className = "order-current-indicator";
-  arrow.textContent = "▶";
+    // Flecha que indica la orden actualmente abierta
+    const arrow = document.createElement("span");
+    arrow.className = "order-current-indicator";
+    arrow.textContent = "▶";
 
-  const title = document.createElement("div");
-  title.className = "order-title";
-  title.textContent = order.title;
+    const title = document.createElement("div");
+    title.className = "order-title";
+    title.textContent = order.title;
 
-  const meta = document.createElement("div");
-  meta.className = "order-meta";
-  const d = order.data;
-  meta.textContent = [d.diaOrden, d.typeOfPost].filter(Boolean).join(" · ");
+    const meta = document.createElement("div");
+    meta.className = "order-meta";
+    const d = order.data;
+    meta.textContent = [d.diaOrden, d.typeOfPost].filter(Boolean).join(" · ");
 
-  // Orden: flecha + textos
-  main.appendChild(arrow);
-  main.appendChild(title);
-  main.appendChild(meta);
+    main.appendChild(arrow);
+    main.appendChild(title);
+    main.appendChild(meta);
 
-  const actions = document.createElement("div");
-  actions.className = "order-actions";
+    const actions = document.createElement("div");
+    actions.className = "order-actions";
 
-  const checkBtn = document.createElement("button");
-  checkBtn.className =
-    "order-check" + (order.completed ? " completed" : "");
-  checkBtn.title = "Marcar orden como completada";
-  checkBtn.onclick = ev => {
-    ev.stopPropagation();
-    toggleOrderCompleted(order.id);
-  };
+    const checkBtn = document.createElement("button");
+    checkBtn.className =
+      "order-check" + (order.completed ? " completed" : "");
+    checkBtn.title = "Marcar orden como completada";
+    checkBtn.onclick = ev => {
+      ev.stopPropagation(); // que no dispare el click del item
+      toggleOrderCompleted(order.id);
+    };
 
-  actions.appendChild(checkBtn);
+    actions.appendChild(checkBtn);
 
-  item.onclick = () => selectOrder(order.id);
+    item.onclick = () => selectOrder(order.id);
 
-  item.appendChild(main);
-  item.appendChild(actions);
-  listEl.appendChild(item);
-});
+    item.appendChild(main);
+    item.appendChild(actions);
+    listEl.appendChild(item);
+  });
 
   // Mostrar u ocultar sección de detalle
   const resultsSection = document.getElementById("results");
