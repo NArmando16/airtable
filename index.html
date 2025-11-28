@@ -2,30 +2,41 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Parser de Contenido TikTok / Libros</title>
+  <title>Gestor de Órdenes TikTok</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="app">
     <header>
-      <h1>Parser de contenido para posts</h1>
+      <h1>Gestor de Órdenes</h1>
     </header>
 
+    <!-- ENTRADA DE TEXTO / NUEVA ORDEN -->
     <section>
       <textarea id="rawInput" placeholder="Pega aquí el texto completo"></textarea>
       <div class="controls">
-        <button id="processBtn" class="btn">
-          ⚙️ Procesar texto
+        <button id="addOrderBtn" class="btn">
+          ➕ Añadir orden a la cola
         </button>
       </div>
     </section>
 
+    <!-- COLA DE ÓRDENES -->
+    <section id="ordersQueue" class="card">
+      <h2>
+        Órdenes en este celular
+        <span class="tag" id="ordersCountTag">0 órdenes</span>
+      </h2>
+      <div id="orderList"></div>
+    </section>
+
+    <!-- DETALLE DE ORDEN -->
     <section id="results" class="hidden">
       <p id="statusMessage" class="status"></p>
 
       <!-- 1. USUARIO -->
-      <div class="card">
+      <div class="card" id="userDetailsCard">
         <h2>
           Usuario
           <span class="tag">Cuenta</span>
@@ -106,6 +117,22 @@
           <button class="copy-btn" data-copy="comboField">📋 Copiar combo</button>
         </h2>
         <pre id="comboField"></pre>
+      </div>
+
+      <!-- Barra inferior: resumen de orden y flechas -->
+      <div class="order-top-bar">
+        <div class="order-top-left">
+          <button id="currentOrderDoneToggle" class="order-check" title="Marcar orden como completada"></button>
+          <span id="currentOrderTitle">Sin orden seleccionada</span>
+        </div>
+        <div class="order-nav">
+          <button id="orderPrevBtn" class="order-nav-btn">
+            ▲ <span id="ordersAboveCount">0</span>
+          </button>
+          <button id="orderNextBtn" class="order-nav-btn">
+            ▼ <span id="ordersBelowCount">0</span>
+          </button>
+        </div>
       </div>
     </section>
   </main>
