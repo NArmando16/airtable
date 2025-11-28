@@ -1,3 +1,4 @@
+// ====== ESTADO GLOBAL ======
 const defaultResult = () => ({
   orderId: "",
   diaOrden: "",
@@ -15,9 +16,11 @@ const defaultResult = () => ({
   hashtags: ""
 });
 
-let lastParsed = null;
+let orders = [];            // todas las órdenes
+let currentOrderId = null;  // id de la orden que se está viendo
+let nextOrderId = 1;        // contador para IDs internos
 
-// Limpia bullets, tabs raros, etc.
+// ====== HELPERS DE TEXTO / PARSEO ======
 function cleanLine(line) {
   if (!line) return "";
   return line
@@ -52,39 +55,40 @@ function parseInput(raw) {
 
   let inSlidesSection = false;
 
-  // Caption puede ser: "Caption:", "🖤caption:", "Tik Tok Caption:", "Tiktok Caption:", etc.
-  const captionRegex = /^[^a-zA-Z0-9]*((tik\s*tok\s+caption)|(tiktok\s+caption)|caption)\b\s*:?\s*/i;
+  // Caption: acepta "Caption:", "🖤caption:", "Tik Tok Caption:", etc.
+  const captionRegex =
+    /^[^a-zA-Z0-9]*((tik\s*tok\s+caption)|(tiktok\s+caption)|caption)\b\s*:??\s*/i;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const lower = line.toLowerCase();
 
-    const takeNext = (setter) => {
+    const takeNext = setter => {
       if (i + 1 < lines.length) setter(cleanLine(lines[i + 1]));
     };
 
     // IDs / fechas / cuenta
     if (lower === "entregableid" || lower === "orderid") {
-      takeNext(v => result.orderId = v);
+      takeNext(v => (result.orderId = v));
     } else if (lower === "dia de entregable" || lower === "dia de orden") {
-      takeNext(v => result.diaOrden = v);
-    } else if (lower.endsWith("cuenta")) { // "Cuenta" o "1 Cuenta"
-      takeNext(v => result.cuenta = v);
+      takeNext(v => (result.diaOrden = v));
+    } else if (lower.endsWith("cuenta")) {
+      takeNext(v => (result.cuenta = v));
     } else if (lower === "crew" || lower.endsWith("crew")) {
-      takeNext(v => result.crew = v);
+      takeNext(v => (result.crew = v));
     } else if (lower === "celular" || lower === "device") {
-      takeNext(v => result.device = v);
+      takeNext(v => (result.device = v));
     } else if (lower.startsWith("sound link")) {
-      takeNext(v => result.soundLink = v);
+      takeNext(v => (result.soundLink = v));
     } else if (lower.startsWith("type of post")) {
-      takeNext(v => result.typeOfPost = v);
+      takeNext(v => (result.typeOfPost = v));
     }
 
     if (/^text to use on post/i.test(line)) {
       inSlidesSection = true;
     }
 
-    // Caption (incluye variantes con emojis y "Tik Tok Caption")
+    // Caption
     if (captionRegex.test(line)) {
       let captionInline = line.replace(captionRegex, "").trim();
       captionInline = cleanLine(captionInline);
@@ -122,10 +126,10 @@ function parseInput(raw) {
 
     // Imágenes (categoría)
     if (lower.startsWith("images for post")) {
-      takeNext(v => result.imageCategory = v);
+      takeNext(v => (result.imageCategory = v));
     }
 
-    // Imágenes (URLs bajo Link Cover Image / Images)
+    // Imágenes (URLs)
     if (lower.startsWith("link cover image")) {
       let j = i + 1;
       for (; j < lines.length; j++) {
@@ -179,6 +183,7 @@ function parseInput(raw) {
   return result;
 }
 
+// ====== PORTAPAPELES ======
 async function copyToClipboard(text) {
   if (!text) return;
   if (navigator.clipboard && window.isSecureContext) {
@@ -186,7 +191,7 @@ async function copyToClipboard(text) {
       await navigator.clipboard.writeText(text);
       return;
     } catch {
-      // ignore y fall back
+      // fallback más abajo
     }
   }
   const textarea = document.createElement("textarea");
@@ -204,8 +209,138 @@ async function copyToClipboard(text) {
   document.body.removeChild(textarea);
 }
 
+// ====== COLA DE ÓRDENES ======
+function addOrderFromInput() {
+  const raw = document.getElementById("rawInput").value || "";
+  if (!raw.trim()) {
+    alert("Pega primero el texto de la orden.");
+    return;
+  }
+
+  const data = parseInput(raw);
+
+  const parts = [];
+  if (data.cuenta) parts.push(data.cuenta);
+  if (data.orderId) parts.push(data.orderId);
+  const title = parts.join(" · ") || `Orden ${nextOrderId}`;
+
+  const order = {
+    id: nextOrderId++,
+    title,
+    data,
+    completed: false
+  };
+
+  orders.push(order);
+  document.getElementById("rawInput").value = "";
+
+  // Si no hay orden activa, esta será la primera
+  if (currentOrderId === null) {
+    currentOrderId = order.id;
+    renderResults(order.data);
+  }
+
+  renderOrderList();
+  updateOrderNav();
+  updateCurrentOrderHeader();
+}
+
+function getCurrentOrderIndex() {
+  return orders.findIndex(o => o.id === currentOrderId);
+}
+
+function getCurrentOrder() {
+  return orders.find(o => o.id === currentOrderId) || null;
+}
+
+function selectOrder(id) {
+  const ord = orders.find(o => o.id === id);
+  if (!ord) return;
+  currentOrderId = id;
+  renderResults(ord.data);
+  renderOrderList();
+  updateOrderNav();
+  updateCurrentOrderHeader();
+}
+
+function toggleOrderCompleted(id) {
+  const ord = orders.find(o => o.id === id);
+  if (!ord) return;
+  ord.completed = !ord.completed;
+  renderOrderList();
+  if (id === currentOrderId) {
+    updateCurrentOrderHeader();
+  }
+}
+
+function renderOrderList() {
+  const listEl = document.getElementById("orderList");
+  const countTag = document.getElementById("ordersCountTag");
+
+  listEl.innerHTML = "";
+  countTag.textContent =
+    orders.length + " orden" + (orders.length === 1 ? "" : "es");
+
+  orders.forEach(order => {
+  const item = document.createElement("div");
+  item.className =
+    "order-item" + (order.id === currentOrderId ? " order-item-active" : "");
+
+  const main = document.createElement("div");
+  main.className = "order-main";
+
+  // Flecha que indica la orden actualmente abierta
+  const arrow = document.createElement("span");
+  arrow.className = "order-current-indicator";
+  arrow.textContent = "▶";
+
+  const title = document.createElement("div");
+  title.className = "order-title";
+  title.textContent = order.title;
+
+  const meta = document.createElement("div");
+  meta.className = "order-meta";
+  const d = order.data;
+  meta.textContent = [d.diaOrden, d.typeOfPost].filter(Boolean).join(" · ");
+
+  // Orden: flecha + textos
+  main.appendChild(arrow);
+  main.appendChild(title);
+  main.appendChild(meta);
+
+  const actions = document.createElement("div");
+  actions.className = "order-actions";
+
+  const checkBtn = document.createElement("button");
+  checkBtn.className =
+    "order-check" + (order.completed ? " completed" : "");
+  checkBtn.title = "Marcar orden como completada";
+  checkBtn.onclick = ev => {
+    ev.stopPropagation();
+    toggleOrderCompleted(order.id);
+  };
+
+  actions.appendChild(checkBtn);
+
+  item.onclick = () => selectOrder(order.id);
+
+  item.appendChild(main);
+  item.appendChild(actions);
+  listEl.appendChild(item);
+});
+
+  // Mostrar u ocultar sección de detalle
+  const resultsSection = document.getElementById("results");
+  if (orders.length === 0) {
+    resultsSection.classList.add("hidden");
+    currentOrderId = null;
+  } else if (currentOrderId !== null) {
+    resultsSection.classList.remove("hidden");
+  }
+}
+
+// ====== COPIAS RÁPIDAS GENERALES ======
 function attachCopyHandlers() {
-  // Solo botones globales (título, combo)
   document.querySelectorAll("[data-copy]").forEach(btn => {
     btn.onclick = async () => {
       const targetId = btn.getAttribute("data-copy");
@@ -223,7 +358,7 @@ function attachCopyHandlers() {
   });
 }
 
-// Enfoca un slide (lo resalta y hace scroll suave)
+// ====== SLIDES ======
 function focusSlide(index) {
   const all = document.querySelectorAll(".slide-item");
   all.forEach(el => el.classList.remove("slide-active"));
@@ -234,16 +369,28 @@ function focusSlide(index) {
     try {
       target.scrollIntoView({ behavior: "smooth", block: "center" });
     } catch {
-      // por si el navegador no soporta scrollIntoView options
       target.scrollIntoView();
     }
   }
 }
 
+// Scroll a la tarjeta de usuario
+function scrollToUserDetails() {
+  const el = document.getElementById("userDetailsCard");
+  if (!el) return;
+  try {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch {
+    el.scrollIntoView();
+  }
+}
+
+// ====== DETALLE DE ORDEN ======
 function renderResults(data) {
   const resultsSection = document.getElementById("results");
-  const statusMessage = document.getElementById("statusMessage");
   resultsSection.classList.remove("hidden");
+
+  const statusMessage = document.getElementById("statusMessage");
 
   const parts = [];
   if (data.cuenta) parts.push("usuario");
@@ -298,6 +445,11 @@ function renderResults(data) {
     title.className = "slide-title";
     title.textContent = slide.title || "Slide " + (idx + 1);
 
+    const rightHeader = document.createElement("div");
+    rightHeader.style.display = "flex";
+    rightHeader.style.alignItems = "center";
+    rightHeader.style.gap = "0.3rem";
+
     const statusDot = document.createElement("span");
     statusDot.className = "slide-status";
     statusDot.id = "slideStatus_" + idx;
@@ -308,7 +460,6 @@ function renderResults(data) {
     copyBtn.textContent = "📋 Copiar slide";
 
     copyBtn.addEventListener("click", async () => {
-      // SOLO el cuerpo del slide, sin la palabra "Slide"
       const textToCopy = slide.text || "";
       if (!textToCopy.trim()) return;
       await copyToClipboard(textToCopy);
@@ -319,16 +470,17 @@ function renderResults(data) {
         copyBtn.textContent = original;
       }, 1200);
 
-      // Ir al siguiente slide automáticamente
       const nextIndex = idx + 1;
       if (nextIndex < data.slides.length) {
         focusSlide(nextIndex);
       }
     });
 
+    rightHeader.appendChild(statusDot);
+    rightHeader.appendChild(copyBtn);
+
     header.appendChild(title);
-    header.appendChild(statusDot);
-    header.appendChild(copyBtn);
+    header.appendChild(rightHeader);
 
     const pre = document.createElement("pre");
     pre.id = slideId;
@@ -339,7 +491,7 @@ function renderResults(data) {
     slidesContainer.appendChild(wrap);
   });
 
-  // Imágenes (solo links)
+  // Imágenes
   document.getElementById("imageCategoryField").textContent = orDash(
     data.imageCategory
   );
@@ -383,32 +535,26 @@ function renderResults(data) {
   document.getElementById("bookInfoField").textContent = data.bookInfo || "";
 
   // Combo caption + géneros + hashtags
-  const combo = [
-    data.caption || "",
-    (data.genres || []).join("\n"),
-    data.hashtags || ""
-  ]
+  const combo = [data.caption || "", (data.genres || []).join("\n"), data.hashtags || ""]
     .filter(s => s && s.trim())
     .join("\n\n");
   document.getElementById("comboField").textContent = combo;
 
   attachCopyHandlers();
+  updateCurrentOrderHeader();
+  updateOrderNav();
   autoCopyFirstSlide(data);
 }
 
-// Copia automáticamente el Slide 1 al procesar (solo cuerpo)
-async function autoCopyFirstSlide(data) {
+// Copia automáticamente el Slide 1 al cambiar de orden
+function autoCopyFirstSlide(data) {
   if (!data || !data.slides || !data.slides.length) return;
   const first = data.slides[0];
-
-  // SOLO el cuerpo del slide
   const textToCopy = first.text || "";
   if (!textToCopy.trim()) return;
 
-  // Copiar al portapapeles
   copyToClipboard(textToCopy);
 
-  // Marcar visualmente el slide 1 como copiado
   const statusDot = document.getElementById("slideStatus_0");
   if (statusDot) {
     statusDot.classList.add("copied");
@@ -421,17 +567,108 @@ async function autoCopyFirstSlide(data) {
       copyBtn.textContent = original;
     }, 1200);
   }
-
-  // Enfocar el primer slide (el que vas a usar primero)
-  focusSlide(0);
 }
 
-document.getElementById("processBtn").addEventListener("click", () => {
-  const raw = document.getElementById("rawInput").value || "";
-  const parsed = parseInput(raw);
-  lastParsed = parsed;
-  renderResults(parsed);
+// ====== BARRA INFERIOR (TÍTULO + CASILLA) ======
+function updateCurrentOrderHeader() {
+  const label = document.getElementById("currentOrderTitle");
+  const toggle = document.getElementById("currentOrderDoneToggle");
+  const ord = getCurrentOrder();
+
+  if (!ord) {
+    label.textContent = "Sin orden seleccionada";
+    toggle.classList.remove("completed");
+    toggle.disabled = true;
+    return;
+  }
+
+  toggle.disabled = false;
+  if (ord.completed) {
+    toggle.classList.add("completed");
+  } else {
+    toggle.classList.remove("completed");
+  }
+
+  const data = ord.data || {};
+  // título del libro (quitando 📚:)
+  let bookTitle = (data.bookInfo || "").replace(/^📚\s*:/, "").trim();
+  const account = data.cuenta || "";
+
+  let labelText;
+  if (bookTitle && account) {
+    labelText = `${bookTitle} - ${account}`;
+  } else if (bookTitle) {
+    labelText = bookTitle;
+  } else if (account) {
+    labelText = account;
+  } else {
+    labelText = ord.title;
+  }
+
+  label.textContent = labelText;
+}
+
+// ====== FLECHAS ARRIBA / ABAJO ======
+function updateOrderNav() {
+  const aboveSpan = document.getElementById("ordersAboveCount");
+  const belowSpan = document.getElementById("ordersBelowCount");
+  const prevBtn = document.getElementById("orderPrevBtn");
+  const nextBtn = document.getElementById("orderNextBtn");
+
+  const idx = getCurrentOrderIndex();
+  if (idx === -1) {
+    aboveSpan.textContent = "0";
+    belowSpan.textContent = "0";
+    prevBtn.classList.add("disabled");
+    nextBtn.classList.add("disabled");
+    return;
+  }
+
+  const above = idx;
+  const below = orders.length - idx - 1;
+
+  aboveSpan.textContent = above;
+  belowSpan.textContent = below;
+
+  if (above > 0) {
+    prevBtn.classList.remove("disabled");
+  } else {
+    prevBtn.classList.add("disabled");
+  }
+  if (below > 0) {
+    nextBtn.classList.remove("disabled");
+  } else {
+    nextBtn.classList.add("disabled");
+  }
+}
+
+// ====== EVENTOS GLOBALES ======
+document.getElementById("addOrderBtn").addEventListener("click", addOrderFromInput);
+
+document.getElementById("orderPrevBtn").addEventListener("click", () => {
+  const idx = getCurrentOrderIndex();
+  if (idx > 0) {
+    selectOrder(orders[idx - 1].id);
+    scrollToUserDetails();
+  }
 });
 
-// Inicializa handlers globales (botones de copiar título/combo)
+document.getElementById("orderNextBtn").addEventListener("click", () => {
+  const idx = getCurrentOrderIndex();
+  if (idx === -1) return;
+  if (idx < orders.length - 1) {
+    selectOrder(orders[idx + 1].id);
+    scrollToUserDetails();
+  }
+});
+
+document
+  .getElementById("currentOrderDoneToggle")
+  .addEventListener("click", () => {
+    const ord = getCurrentOrder();
+    if (!ord) return;
+    toggleOrderCompleted(ord.id);
+  });
+
+// Inicializar handlers para botones de copia globales
 attachCopyHandlers();
