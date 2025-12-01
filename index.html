@@ -23,13 +23,20 @@
     </section>
 
     <!-- COLA DE ÓRDENES -->
-    <section id="ordersQueue" class="card">
-      <h2>
-        Órdenes en este celular
-        <span class="tag" id="ordersCountTag">0 órdenes</span>
-      </h2>
-      <div id="orderList"></div>
-    </section>
+   <section id="ordersQueue" class="card">
+  <h2>
+    Órdenes en este celular
+    <span class="tag" id="ordersCountTag">0 órdenes</span>
+  </h2>
+
+  <div class="controls" style="margin-top:0.3rem; margin-bottom:0.6rem;">
+    <button id="resetOrdersBtn" class="copy-btn">
+      🧹 Limpiar cola de órdenes
+    </button>
+  </div>
+
+  <div id="orderList"></div>
+</section>
 
     <!-- DETALLE DE ORDEN -->
     <section id="results" class="hidden">
@@ -104,20 +111,20 @@
         <div id="slidesContainer" class="slides-list"></div>
       </div>
 
-      <!-- 5. TÍTULO + combo -->
-      <div class="card">
-        <h2>
-          Título (Libro / Autor / Tropes)
-          <button class="copy-btn" data-copy="bookInfoField">📋 Copiar título</button>
-        </h2>
-        <div id="bookInfoField" class="text-block"></div>
+  <!-- 5. TÍTULO + combo -->
+<div class="card" id="titleCard">
+  <h2>
+    Título (Libro / Autor / Tropes)
+    <button class="copy-btn" data-copy="bookInfoField">📋 Copiar título</button>
+  </h2>
+  <div id="bookInfoField" class="text-block"></div>
 
-        <h2 style="margin-top:0.8rem;">
-          Caption + géneros + hashtags
-          <button class="copy-btn" data-copy="comboField">📋 Copiar combo</button>
-        </h2>
-        <pre id="comboField"></pre>
-      </div>
+  <h2 style="margin-top:0.8rem;">
+    Caption + géneros + hashtags
+    <button class="copy-btn" data-copy="comboField">📋 Copiar combo</button>
+  </h2>
+  <pre id="comboField"></pre>
+</div>
 
       <!-- Barra inferior: resumen de orden y flechas -->
       <div class="order-top-bar">
