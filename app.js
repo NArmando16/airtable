@@ -19,6 +19,7 @@ const defaultResult = () => ({
 let orders = [];            // todas las órdenes
 let currentOrderId = null;  // id de la orden que se está viendo
 let nextOrderId = 1;        // contador para IDs internos
+const STORAGE_KEY = "tt_order_manager_v1";
 
 // ====== HELPERS DE TEXTO / PARSEO ======
 function cleanLine(line) {
@@ -55,7 +56,7 @@ function parseInput(raw) {
 
   let inSlidesSection = false;
 
-  // Caption: acepta "Caption:", "🖤caption:", "Tik Tok Caption:", "Tiktok Caption:", etc.
+  // Caption: acepta "Caption:", "🖤caption:", "Tik Tok Caption:", etc.
   const captionRegex =
     /^[^\w]*((tik\s*tok\s+caption)|(tiktok\s+caption)|caption)\b\s*:?\s*/i;
 
@@ -183,6 +184,33 @@ function parseInput(raw) {
   return result;
 }
 
+// ====== LOCALSTORAGE (GUARDAR / CARGAR ESTADO) ======
+function saveState() {
+  try {
+    const state = {
+      orders,
+      currentOrderId,
+      nextOrderId
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error("No se pudo guardar estado", e);
+  }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    orders = Array.isArray(state.orders) ? state.orders : [];
+    currentOrderId = state.currentOrderId ?? null;
+    nextOrderId = state.nextOrderId || 1;
+  } catch (e) {
+    console.error("No se pudo leer estado guardado", e);
+  }
+}
+
 // ====== PORTAPAPELES ======
 async function copyToClipboard(text) {
   if (!text) return;
@@ -243,6 +271,7 @@ function addOrderFromInput() {
   renderOrderList();
   updateOrderNav();
   updateCurrentOrderHeader();
+  saveState();
 }
 
 function getCurrentOrderIndex() {
@@ -261,6 +290,7 @@ function selectOrder(id) {
   renderOrderList();
   updateOrderNav();
   updateCurrentOrderHeader();
+  saveState();
 }
 
 function toggleOrderCompleted(id) {
@@ -271,6 +301,7 @@ function toggleOrderCompleted(id) {
   if (id === currentOrderId) {
     updateCurrentOrderHeader();
   }
+  saveState();
 }
 
 function renderOrderList() {
@@ -338,7 +369,38 @@ function renderOrderList() {
   }
 }
 
+// Limpiar toda la cola de este dispositivo
+function resetAllOrders() {
+  const ok = confirm(
+    "¿Seguro que quieres limpiar la cola de órdenes de este dispositivo?\nEsta acción no se puede deshacer."
+  );
+  if (!ok) return;
+
+  orders = [];
+  currentOrderId = null;
+  nextOrderId = 1;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    console.error("No se pudo eliminar estado guardado", e);
+  }
+
+  renderOrderList();
+  const resultsSection = document.getElementById("results");
+  if (resultsSection) resultsSection.classList.add("hidden");
+}
+
 // ====== COPIAS RÁPIDAS GENERALES ======
+function scrollToCombo() {
+  const el = document.getElementById("comboField");
+  if (!el) return;
+  try {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch {
+    el.scrollIntoView();
+  }
+}
+
 function attachCopyHandlers() {
   document.querySelectorAll("[data-copy]").forEach(btn => {
     btn.onclick = async () => {
@@ -353,6 +415,11 @@ function attachCopyHandlers() {
       setTimeout(() => {
         btn.textContent = original;
       }, 1200);
+
+      // Si copio el título, auto scroll al combo
+      if (targetId === "bookInfoField") {
+        scrollToCombo();
+      }
     };
   });
 }
@@ -376,6 +443,17 @@ function focusSlide(index) {
 // Scroll a la tarjeta de usuario
 function scrollToUserDetails() {
   const el = document.getElementById("userDetailsCard");
+  if (!el) return;
+  try {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch {
+    el.scrollIntoView();
+  }
+}
+
+// Scroll a la tarjeta de título
+function scrollToTitleCard() {
+  const el = document.getElementById("titleCard");
   if (!el) return;
   try {
     el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -471,7 +549,11 @@ function renderResults(data) {
 
       const nextIndex = idx + 1;
       if (nextIndex < data.slides.length) {
+        // Hay siguiente slide: enfocar
         focusSlide(nextIndex);
+      } else {
+        // Último slide: ir al título
+        scrollToTitleCard();
       }
     });
 
@@ -643,6 +725,7 @@ function updateOrderNav() {
 
 // ====== EVENTOS GLOBALES ======
 document.getElementById("addOrderBtn").addEventListener("click", addOrderFromInput);
+document.getElementById("resetOrdersBtn").addEventListener("click", resetAllOrders);
 
 document.getElementById("orderPrevBtn").addEventListener("click", () => {
   const idx = getCurrentOrderIndex();
@@ -669,5 +752,20 @@ document
     toggleOrderCompleted(ord.id);
   });
 
-// Inicializar handlers para botones de copia globales
+// ====== INICIALIZACIÓN ======
 attachCopyHandlers();
+loadState();
+
+if (orders.length > 0) {
+  renderOrderList();
+  if (
+    currentOrderId === null ||
+    !orders.some(o => o.id === currentOrderId)
+  ) {
+    currentOrderId = orders[0].id;
+  }
+  const ord = getCurrentOrder();
+  if (ord) {
+    renderResults(ord.data);
+  }
+}
