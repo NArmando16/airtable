@@ -33,15 +33,19 @@ function cleanLine(line) {
 
 function isSlideHeader(line, inSlidesSection) {
   const trimmed = line.trim();
+
+  // Casos tipo "Slide 1", "slide one", "[Slide 3]"
   if (/^slide\b/i.test(trimmed)) return true;
   if (/^\[\s*slide\b.*\]$/i.test(trimmed)) return true;
+
+  // Dentro de la sección de slides, aceptar números con basura ligera:
+  // "1", "2.", "3 )", "4. “", '5 "', etc.
   if (inSlidesSection) {
-    const m = /^(\d{1,2})(?:[.)])?$/.exec(trimmed);
-    if (m) {
-      const n = parseInt(m[1], 10);
-      if (n >= 1 && n <= 50) return true;
+    if (/^\d{1,2}[\s\.\)\-"“”']*$/.test(trimmed)) {
+      return true;
     }
   }
+
   return false;
 }
 
@@ -55,6 +59,10 @@ function parseInput(raw) {
   if (!lines.length) return result;
 
   let inSlidesSection = false;
+
+  // Para ONE SLIDE: recolectar texto crudo después de "Text to use on post"
+  let collectingImplicitSlide = false;
+  let implicitSlideLines = [];
 
   // Caption: acepta "Caption:", "🖤caption:", "Tik Tok Caption:", etc.
   const captionRegex =
@@ -71,22 +79,34 @@ function parseInput(raw) {
     // IDs / fechas / cuenta
     if (lower === "entregableid" || lower === "orderid") {
       takeNext(v => (result.orderId = v));
+      continue;
     } else if (lower === "dia de entregable" || lower === "dia de orden") {
       takeNext(v => (result.diaOrden = v));
+      continue;
     } else if (lower.endsWith("cuenta")) {
       takeNext(v => (result.cuenta = v));
+      continue;
     } else if (lower === "crew" || lower.endsWith("crew")) {
       takeNext(v => (result.crew = v));
+      continue;
     } else if (lower === "celular" || lower === "device") {
       takeNext(v => (result.device = v));
+      continue;
     } else if (lower.startsWith("sound link")) {
       takeNext(v => (result.soundLink = v));
+      continue;
     } else if (lower.startsWith("type of post")) {
       takeNext(v => (result.typeOfPost = v));
+      continue;
     }
 
+    // Inicio de sección "Text to use on post"
     if (/^text to use on post/i.test(line)) {
       inSlidesSection = true;
+      // Reseteamos por si acaso
+      collectingImplicitSlide = false;
+      implicitSlideLines = [];
+      continue; // no queremos tratar esta línea como texto
     }
 
     // Caption
@@ -98,9 +118,44 @@ function parseInput(raw) {
       } else if (i + 1 < lines.length) {
         result.caption = cleanLine(lines[i + 1]);
       }
+      continue;
     }
 
-    // Slides
+    // ====== ONE SLIDE TYPE: texto directo tras "Text to use on post" ======
+    const isOneSlidePost =
+      /one\s+slide/i.test(result.typeOfPost || "") ||
+      /one\s+slider/i.test(result.typeOfPost || "");
+
+    if (inSlidesSection && isOneSlidePost && result.slides.length === 0) {
+      // Si llegamos a una sección nueva, cerramos el slide implícito
+      const boundary =
+        lower.startsWith("images for post") ||
+        lower.startsWith("link cover image") ||
+        lower.startsWith("book - author - tropes") ||
+        lower.startsWith("hashtag order") ||
+        lower.startsWith("hashtags for post") ||
+        lower.startsWith("new genre") ||
+        lower.startsWith("type of post");
+
+      if (boundary) {
+        if (collectingImplicitSlide && implicitSlideLines.length) {
+          result.slides.push({
+            title: "Slide 1",
+            text: implicitSlideLines.join("\n").trim()
+          });
+          collectingImplicitSlide = false;
+          implicitSlideLines = [];
+        }
+        // dejamos que el resto de la lógica procese esta línea (por ejemplo, imágenes)
+      } else if (!isSlideHeader(line, true)) {
+        // No es header de slide ni boundary → texto del único slide
+        collectingImplicitSlide = true;
+        implicitSlideLines.push(line);
+        continue; // esta línea ya se usó como texto de slide
+      }
+    }
+
+    // ====== SLIDES NORMALES (multi-slide) ======
     if (isSlideHeader(line, inSlidesSection)) {
       const title = line;
       const bodyLines = [];
@@ -128,6 +183,7 @@ function parseInput(raw) {
     // Imágenes (categoría)
     if (lower.startsWith("images for post")) {
       takeNext(v => (result.imageCategory = v));
+      continue;
     }
 
     // Imágenes (URLs)
@@ -149,6 +205,7 @@ function parseInput(raw) {
         }
       }
       i = j - 1;
+      continue;
     }
 
     // Libro / géneros / hashtags
@@ -178,7 +235,20 @@ function parseInput(raw) {
         }
       }
       i = j - 1;
+      continue;
     }
+  }
+
+  // Si era One Slide Type y hemos recolectado texto pero no lo llegamos a cerrar
+  if (
+    collectingImplicitSlide &&
+    implicitSlideLines.length &&
+    result.slides.length === 0
+  ) {
+    result.slides.push({
+      title: "Slide 1",
+      text: implicitSlideLines.join("\n").trim()
+    });
   }
 
   return result;
@@ -304,6 +374,41 @@ function toggleOrderCompleted(id) {
   saveState();
 }
 
+// ELIMINAR SOLO UNA ORDEN
+function deleteOrder(id) {
+  const idx = orders.findIndex(o => o.id === id);
+  if (idx === -1) return;
+
+  const isCurrent = orders[idx].id === currentOrderId;
+  orders.splice(idx, 1);
+
+  if (isCurrent) {
+    if (orders.length === 0) {
+      currentOrderId = null;
+    } else if (idx < orders.length) {
+      currentOrderId = orders[idx].id; // siguiente
+    } else {
+      currentOrderId = orders[orders.length - 1].id; // última
+    }
+  }
+
+  renderOrderList();
+
+  if (currentOrderId === null) {
+    const resultsSection = document.getElementById("results");
+    if (resultsSection) resultsSection.classList.add("hidden");
+  } else {
+    const ord = getCurrentOrder();
+    if (ord) {
+      renderResults(ord.data);
+    }
+  }
+
+  updateOrderNav();
+  updateCurrentOrderHeader();
+  saveState();
+}
+
 function renderOrderList() {
   const listEl = document.getElementById("orderList");
   const countTag = document.getElementById("ordersCountTag");
@@ -350,7 +455,22 @@ function renderOrderList() {
       toggleOrderCompleted(order.id);
     };
 
+    // Botón para borrar SOLO esta orden
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "order-delete-btn";
+    deleteBtn.title = "Eliminar esta orden de la cola";
+    deleteBtn.textContent = "🗑";
+    deleteBtn.onclick = ev => {
+      ev.stopPropagation();
+      const ok = confirm(
+        "¿Seguro que quieres eliminar esta orden de la cola?\nEsta acción no se puede deshacer."
+      );
+      if (!ok) return;
+      deleteOrder(order.id);
+    };
+
     actions.appendChild(checkBtn);
+    actions.appendChild(deleteBtn);
 
     item.onclick = () => selectOrder(order.id);
 
