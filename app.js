@@ -31,17 +31,20 @@ function cleanLine(line) {
     .trim();
 }
 
+// Detector de encabezados de slide
 function isSlideHeader(line, inSlidesSection) {
   const trimmed = line.trim();
 
-  // Casos tipo "Slide 1", "slide one", "[Slide 3]"
+  // Ej: "Slide 1", "slide 2", "Slide one"
   if (/^slide\b/i.test(trimmed)) return true;
-  if (/^\[\s*slide\b.*\]$/i.test(trimmed)) return true;
+
+  // Ej: "[Slide 1]", "[Slide 2", "[Slide eight" (aceptamos aunque falte ']')
+  if (/^\[\s*slide\b.*$/i.test(trimmed)) return true;
 
   // Dentro de la sección de slides, aceptar números con basura ligera:
-  // "1", "2.", "3 )", "4. “", '5 "', etc.
+  // "1", "2:", "3.", "4 )", "5 “", '6 "', etc.
   if (inSlidesSection) {
-    if (/^\d{1,2}[\s\.\)\-"“”']*$/.test(trimmed)) {
+    if (/^\d{1,2}[\s\.\)\-"“”':]*$/.test(trimmed)) {
       return true;
     }
   }
@@ -124,7 +127,8 @@ function parseInput(raw) {
     // ====== ONE SLIDE TYPE: texto directo tras "Text to use on post" ======
     const isOneSlidePost =
       /one\s+slide/i.test(result.typeOfPost || "") ||
-      /one\s+slider/i.test(result.typeOfPost || "");
+      /one\s+slider/i.test(result.typeOfPost || "") ||
+      /one slide type/i.test(result.typeOfPost || "");
 
     if (inSlidesSection && isOneSlidePost && result.slides.length === 0) {
       // Si llegamos a una sección nueva, cerramos el slide implícito
@@ -336,6 +340,7 @@ function addOrderFromInput() {
   if (currentOrderId === null) {
     currentOrderId = order.id;
     renderResults(order.data);
+    scrollToFirstSlide();
   }
 
   renderOrderList();
@@ -360,6 +365,7 @@ function selectOrder(id) {
   renderOrderList();
   updateOrderNav();
   updateCurrentOrderHeader();
+  scrollToFirstSlide(); // 👉 al cambiar de orden, subimos a la primera slide
   saveState();
 }
 
@@ -401,6 +407,7 @@ function deleteOrder(id) {
     const ord = getCurrentOrder();
     if (ord) {
       renderResults(ord.data);
+      scrollToFirstSlide();
     }
   }
 
@@ -568,6 +575,17 @@ function scrollToUserDetails() {
     el.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch {
     el.scrollIntoView();
+  }
+}
+
+// Scroll a la primera slide
+function scrollToFirstSlide() {
+  const first = document.getElementById("slideItem_0");
+  if (!first) return;
+  try {
+    first.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch {
+    first.scrollIntoView();
   }
 }
 
@@ -887,5 +905,6 @@ if (orders.length > 0) {
   const ord = getCurrentOrder();
   if (ord) {
     renderResults(ord.data);
+    scrollToFirstSlide();
   }
 }
