@@ -41,9 +41,13 @@ function isSlideHeader(line, inSlidesSection) {
   // Ej: "[Slide 1]", "[Slide 2", "[Slide eight" (aceptamos aunque falte ']')
   if (/^\[\s*slide\b.*$/i.test(trimmed)) return true;
 
-  // Dentro de la sección de slides, aceptar números con basura ligera:
-  // "1", "2:", "3.", "4 )", "5 “", '6 "', etc.
   if (inSlidesSection) {
+    // Caso especial: "1. (Hook)", "2 (hook)", "3. (HOOK)", etc.
+    if (/^\d{1,2}\s*[\.\)]?\s*\(\s*hook\s*\)\s*$/i.test(trimmed)) {
+      return true;
+    }
+
+    // Números solos con signos: "1", "2.", "3:", "4 )", etc.
     if (/^\d{1,2}[\s\.\)\-"“”':]*$/.test(trimmed)) {
       return true;
     }
@@ -908,3 +912,4 @@ if (orders.length > 0) {
     scrollToFirstSlide();
   }
 }
+
