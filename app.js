@@ -35,14 +35,20 @@ function cleanLine(line) {
 function isSlideHeader(line, inSlidesSection) {
   const trimmed = line.trim();
 
-  // Ej: "Slide 1", "slide 2", "Slide one"
+  // Ej: "Slide 1", "slide 2", "Slide 10 (Mic Drop)"
   if (/^slide\b/i.test(trimmed)) return true;
 
-  // Ej: "[Slide 1]", "[Slide 2", "[Slide eight" (aceptamos aunque falte ']')
+  // Ej: "[Slide 1]", "[Slide 1 – HOOK]", "[Slide 12] – CLIMAX"
   if (/^\[\s*slide\b.*$/i.test(trimmed)) return true;
 
   if (inSlidesSection) {
-    // Caso especial: "1. (Hook)", "2 (hook)", "3. (HOOK)", etc.
+    // Ej: "HOOK (Slide 1):", "Mic Drop (Slide 10)"
+    // Cualquier línea que termine en "(Slide N)" o "(Slide N):"
+    if (/\(\s*slide\s+\d{1,2}\s*\)\s*:?\s*$/i.test(trimmed)) {
+      return true;
+    }
+
+    // Caso especial que ya teníamos: "1. (Hook)", "2 (hook)", etc.
     if (/^\d{1,2}\s*[\.\)]?\s*\(\s*hook\s*\)\s*$/i.test(trimmed)) {
       return true;
     }
@@ -912,4 +918,5 @@ if (orders.length > 0) {
     scrollToFirstSlide();
   }
 }
+
 
