@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+  <title>Importar órdenes desde CSV</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <section class="card">
+      <h1>Importar órdenes desde CSV</h1>
+
+      <p style="margin-bottom: 0.8rem; font-size: 0.9rem; color: #9ca3af;">
+        1. Descarga el <strong>CSV del día</strong> de la empresa en este celular.<br />
+        2. Sube el archivo aquí abajo.<br />
+        3. Filtra por tu ID de trabajador (Crew) y, si quieres, por el
+        <strong>Celular</strong> de este teléfono (ej: <code>TIKTOK USA 919</code>).<br />
+        4. Yo crearé todas las órdenes en la cola de este dispositivo.
+      </p>
+
+      <div class="field-group">
+        <label for="workerIdInput" class="field-label">
+          ID de trabajador (columna <code>2 Crew</code>)
+        </label>
+        <input
+          id="workerIdInput"
+          type="text"
+          class="text-input"
+          placeholder="Ej: 584ArmandoNavarro"
+        />
+      </div>
+
+      <div class="field-group">
+        <label for="celularIdInput" class="field-label">
+          Celular de este teléfono (columna <code>Celular</code>)
+        </label>
+        <input
+          id="celularIdInput"
+          type="text"
+          class="text-input"
+          placeholder="Ej: TIKTOK USA 919 (opcional)"
+        />
+        <p style="margin-top: 0.2rem; font-size: 0.8rem; color: #9ca3af;">
+          Si lo dejas vacío, se importarán todas tus órdenes (todos los celulares).
+          Si lo rellenas, se importarán solo las órdenes de ese celular.
+        </p>
+      </div>
+
+      <div class="field-group">
+        <label for="csvFileInput" class="field-label">
+          Archivo CSV del día
+        </label>
+        <input
+          id="csvFileInput"
+          type="file"
+          accept=".csv,text/csv"
+          class="text-input"
+        />
+      </div>
+
+      <div class="controls">
+        <button id="analyzeCsvBtn" class="btn">
+          📥 Analizar CSV e importar órdenes
+        </button>
+        <a href="index.html" class="copy-btn">
+          ⬅ Volver al gestor
+        </a>
+      </div>
+
+      <p
+        id="importStatus"
+        style="margin-top: 0.8rem; font-size: 0.9rem; color: #9ca3af;"
+      >
+        Aún no se ha importado nada.
+      </p>
+
+      <pre
+        id="importPreview"
+        class="text-block"
+        style="margin-top: 0.8rem; font-size: 0.85rem; white-space: pre-wrap;"
+      ></pre>
+    </section>
+  </main>
+
+  <!-- PapaParse para leer CSV en el navegador -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="import.js"></script>
+</body>
+</html>

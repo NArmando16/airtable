@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gestor de Órdenes TikTok</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+   <header class="app-header">
+  <h1>Gestor de órdenes TikTok</h1>
+  <div class="controls">
+    <a href="import.html" class="btn">
+      📥 Importar órdenes desde página de la empresa
+    </a>
+  </div>
+</header>
+
+  <section class="card" id="deviceConfigCard">
+  <h2>Configuración de este celular</h2>
+
+  <div class="field-group">
+    <label for="workerIdInputMain" class="field-label">
+      ID de trabajador (Crew)
+    </label>
+    <input
+      id="workerIdInputMain"
+      class="text-input"
+      placeholder="584ArmandoNavarro"
+    />
+  </div>
+
+  <div class="field-group">
+    <label for="deviceIdInputMain" class="field-label">
+      Celular (Device)
+    </label>
+    <input
+      id="deviceIdInputMain"
+      class="text-input"
+      placeholder="TIKTOK USA 919"
+    />
+    <p style="margin-top: 0.2rem; font-size: 0.8rem; color: #9ca3af;">
+      Estos datos se guardan en este celular y se usan todos los días hasta que los cambies.
+    </p>
+  </div>
+
+  <div class="controls">
+    <button id="loadFromServerBtn" class="btn">
+      🔄 Cargar órdenes de hoy desde servidor
+    </button>
+  </div>
+</section>
+
+    <!-- ENTRADA DE TEXTO / NUEVA ORDEN -->
+    <section>
+      <textarea id="rawInput" placeholder="Pega aquí el texto completo"></textarea>
+      <div class="controls">
+        <button id="addOrderBtn" class="btn">
+          ➕ Añadir orden a la cola
+        </button>
+      </div>
+    </section>
+
+    <!-- COLA DE ÓRDENES -->
+   <section id="ordersQueue" class="card">
+  <h2>
+    Órdenes en este celular
+    <span class="tag" id="ordersCountTag">0 órdenes</span>
+  </h2>
+
+  <div class="controls" style="margin-top:0.3rem; margin-bottom:0.6rem;">
+    <button id="resetOrdersBtn" class="copy-btn">
+      🧹 Limpiar cola de órdenes
+    </button>
+  </div>
+
+  <div id="orderList"></div>
+</section>
+
+    <!-- DETALLE DE ORDEN -->
+    <section id="results" class="hidden">
+      <p id="statusMessage" class="status"></p>
+
+      <!-- 1. USUARIO -->
+      <div class="card" id="userDetailsCard">
+        <h2>
+          Usuario
+          <span class="tag">Cuenta</span>
+        </h2>
+        <div class="field-row">
+          <strong>Usuario / Cuenta:</strong> <span id="accountField">—</span>
+        </div>
+        <div class="field-row">
+          <strong>Entregable / ID:</strong> <span id="orderIdField">—</span>
+        </div>
+        <div class="field-row">
+          <strong>Crew:</strong> <span id="crewField">—</span>
+        </div>
+        <div class="field-row">
+          <strong>Celular / Device:</strong> <span id="deviceField">—</span>
+        </div>
+      </div>
+
+      <!-- 2. IMÁGENES -->
+      <div class="card">
+        <h2>
+          Imágenes
+          <span class="tag" id="imageCountTag">0 imágenes</span>
+        </h2>
+        <div class="field-row">
+          <strong>Categoría:</strong> <span id="imageCategoryField">—</span>
+        </div>
+
+        <!-- número = slides + 1 -->
+        <div id="imageAutoNumber" class="image-auto-number"></div>
+
+        <!-- link principal de la imagen -->
+        <div id="imageMainLink" class="text-block"></div>
+        <!-- lista de todos los links (solo texto) -->
+        <div id="imageList"></div>
+      </div>
+
+      <!-- 3. AUDIO -->
+      <div class="card">
+        <h2>
+          Audio
+          <span class="tag">Sound Link</span>
+        </h2>
+        <div class="field-row">
+          <strong>Link del audio:</strong>
+        </div>
+        <div class="field-row">
+          <a id="soundLinkField" href="#" target="_blank" rel="noopener noreferrer"
+             class="audio-link">
+            🎵 Abrir audio
+          </a>
+        </div>
+        <div class="field-row">
+          <small class="hint">Copia el link desde aquí si lo necesitas:</small>
+        </div>
+        <pre id="soundLinkCopy"></pre>
+      </div>
+
+      <!-- 4. SLIDES -->
+      <div class="card">
+        <h2>
+          Slides
+          <span class="tag" id="slidesCountTag">0 slides</span>
+        </h2>
+        <div id="slidesContainer" class="slides-list"></div>
+      </div>
+
+  <!-- 5. TÍTULO + combo -->
+<div class="card" id="titleCard">
+  <h2>
+    Título (Libro / Autor / Tropes)
+    <button class="copy-btn" data-copy="bookInfoField">📋 Copiar título</button>
+  </h2>
+  <div id="bookInfoField" class="text-block"></div>
+
+  <h2 style="margin-top:0.8rem;">
+    Caption + géneros + hashtags
+    <button class="copy-btn" data-copy="comboField">📋 Copiar combo</button>
+  </h2>
+  <pre id="comboField"></pre>
+</div>
+
+      <!-- Barra inferior: resumen de orden y flechas -->
+      <div class="order-top-bar">
+        <div class="order-top-left">
+          <button id="currentOrderDoneToggle" class="order-check" title="Marcar orden como completada"></button>
+          <span id="currentOrderTitle">Sin orden seleccionada</span>
+        </div>
+        <div class="order-nav">
+          <button id="orderPrevBtn" class="order-nav-btn">
+            ▲ <span id="ordersAboveCount">0</span>
+          </button>
+          <button id="orderNextBtn" class="order-nav-btn">
+            ▼ <span id="ordersBelowCount">0</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
