@@ -22,7 +22,7 @@ let nextOrderId = 1;        // contador para IDs internos
 const STORAGE_KEY = "tt_order_manager_v1";
 
 // ====== CONFIG BACKEND / DISPOSITIVO ======
-const BACKEND_BASE_URL = "https://tu-backend-ejemplo.com"; // ← CAMBIA ESTO
+const BACKEND_BASE_URL = "https://backend-airtable-nxyk.onrender.com"; // ← CAMBIA ESTO
 const WORKER_KEY = "tt_worker_id";
 const DEVICE_KEY = "tt_device_id";
 
@@ -35,36 +35,142 @@ function cleanLine(line) {
     .replace(/\s+/g, " ")
     .trim();
 }
+// Descargar todas las imágenes de la cola como un ZIP (vía backend)
+async function downloadAllImagesAsZip(includeCompleted = true) {
+  const allUrls = [];
 
-// Detector de encabezados de slide
-function isSlideHeader(line, inSlidesSection) {
-  const trimmed = line.trim();
+  orders.forEach(o => {
+    if (!includeCompleted && o.completed) return;
+    const imgs = (o.data && o.data.imageLinks) || [];
+    imgs.forEach(u => {
+      if (u && typeof u === "string") {
+        allUrls.push(u.trim());
+      }
+    });
+  });
 
-  // Ej: "Slide 1", "slide 2", "Slide 10 (Mic Drop)"
-  if (/^slide\b/i.test(trimmed)) return true;
-
-  // Ej: "[Slide 1]", "[Slide 1 – HOOK]", "[Slide 12] – CLIMAX"
-  if (/^\[\s*slide\b.*$/i.test(trimmed)) return true;
-
-  if (inSlidesSection) {
-    // Ej: "HOOK (Slide 1):", "Mic Drop (Slide 10)"
-    // Cualquier línea que termine en "(Slide N)" o "(Slide N):"
-    if (/\(\s*slide\s+\d{1,2}\s*\)\s*:?\s*$/i.test(trimmed)) {
-      return true;
-    }
-
-    // Caso especial: "1. (Hook)", "2 (hook)", etc.
-    if (/^\d{1,2}\s*[\.\)]?\s*\(\s*hook\s*\)\s*$/i.test(trimmed)) {
-      return true;
-    }
-
-    // Números solos con signos: "1", "2.", "3:", "4 )", etc.
-    if (/^\d{1,2}[\s\.\)\-"“”':]*$/.test(trimmed)) {
-      return true;
-    }
+  if (!allUrls.length) {
+    alert("No se encontraron imágenes en las órdenes actuales.");
+    return;
   }
 
-  return false;
+  try {
+    const resp = await fetch(BACKEND_BASE_URL + "/api/images-zip", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ urls: allUrls })
+    });
+
+    if (!resp.ok) {
+      console.error("Error HTTP al pedir ZIP", resp.status);
+      alert("Error generando ZIP en el servidor.");
+      return;
+    }
+
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = "imagenes_ordenes.zip";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    console.error("Error solicitando ZIP al backend", err);
+    alert("Error al descargar el ZIP de imágenes.");
+  }
+}
+
+
+// Detector de encabezados de slide
+// Analizador de encabezados de slide (devuelve título + texto en línea opcional)
+function parseSlideHeader(line, inSlidesSection) {
+  if (!line) return { isHeader: false, title: "", inlineText: "" };
+  const trimmed = line.trim();
+  if (!trimmed) return { isHeader: false, title: "", inlineText: "" };
+
+  let m;
+
+  // 1) "HOOK (Slide 1):", "Mic Drop (Slide 10): ..."
+  m = trimmed.match(/^(.*\(\s*slide\s+(\d{1,2})\s*\)\s*:?)\s*(.*)$/i);
+  if (m) {
+    return {
+      isHeader: true,
+      title: m[1].trim(),
+      inlineText: (m[3] || "").trim()
+    };
+  }
+
+  // 2) "Slide 1", "Slide 1 (Hook): ..."
+  m = trimmed.match(/^slide\s*(\d{1,2})(.*)$/i);
+  if (m) {
+    return {
+      isHeader: true,
+      title: trimmed,
+      inlineText: "" // el texto después de "Slide N" no se copia al cuerpo
+    };
+  }
+
+  // 3) "[Slide 1]", "[Slide 1 – HOOK]"
+  if (/^\[\s*slide\b[^\]]*\]/i.test(trimmed)) {
+    return { isHeader: true, title: trimmed, inlineText: "" };
+  }
+
+  // 4) "13 – MIC DROP", "15 - BONUS MIC DROP"
+  m = trimmed.match(/^(\d{1,2})\s*[–-]\s*(.+)$/);
+  if (m && inSlidesSection) {
+    return {
+      isHeader: true,
+      title: `Slide ${m[1]} – ${m[2]}`.trim(),
+      inlineText: "" // "MIC DROP" solo como etiqueta, no como texto del slide
+    };
+  }
+
+  // A partir de aquí, solo consideramos patrones numéricos si estamos ya en sección de slides
+  if (!inSlidesSection) {
+    return { isHeader: false, title: "", inlineText: "" };
+  }
+
+  // 5) "1) Texto de la slide", "2. Más texto"
+  m = trimmed.match(/^(\d{1,2})[\.\)]\s+(.*)$/);
+  if (m) {
+    return {
+      isHeader: true,
+      title: `Slide ${m[1]}`,
+      inlineText: (m[2] || "").trim() // 👉 aquí va el cuerpo (para tu segundo ejemplo)
+    };
+  }
+
+  // 6) "1. (Hook)", "2 (hook)"
+  m = trimmed.match(/^(\d{1,2})\s*[\.\)]?\s*\(\s*hook\s*\)\s*$/i);
+  if (m) {
+    return {
+      isHeader: true,
+      title: `Slide ${m[1]} (Hook)`,
+      inlineText: ""
+    };
+  }
+
+  // 7) "1", "2.", "3:", "4 )"
+  m = trimmed.match(/^(\d{1,2})[\s\.\)\-"“”':]*$/);
+  if (m) {
+    return {
+      isHeader: true,
+      title: `Slide ${m[1]}`,
+      inlineText: ""
+    };
+  }
+
+  return { isHeader: false, title: "", inlineText: "" };
+}
+
+// Detector de encabezados de slide (solo devuelve boolean)
+function isSlideHeader(line, inSlidesSection) {
+  return parseSlideHeader(line, inSlidesSection).isHeader;
 }
 
 function parseInput(raw) {
@@ -127,17 +233,29 @@ function parseInput(raw) {
       continue; // no queremos tratar esta línea como texto
     }
 
-    // Caption
+        // Caption
     if (captionRegex.test(line)) {
       let captionInline = line.replace(captionRegex, "").trim();
       captionInline = cleanLine(captionInline);
+
+      // Si solo queda un guion / raya / signos de puntuación, lo tratamos como vacío
+      if (
+        captionInline &&
+        !/[A-Za-z0-9\u00C0-\u1FFF\u2C00-\uD7FF]/.test(captionInline)
+      ) {
+        captionInline = "";
+      }
+
       if (captionInline) {
+        // Texto en la misma línea que "Caption"
         result.caption = captionInline;
       } else if (i + 1 < lines.length) {
+        // "Caption –" → usamos la siguiente línea como caption
         result.caption = cleanLine(lines[i + 1]);
       }
       continue;
     }
+
 
     // ====== ONE SLIDE TYPE: texto directo tras "Text to use on post" ======
     const isOneSlidePost =
@@ -175,15 +293,33 @@ function parseInput(raw) {
     }
 
     // ====== SLIDES NORMALES (multi-slide) ======
-    if (isSlideHeader(line, inSlidesSection)) {
-      const title = line;
+      // ====== SLIDES NORMALES (multi-slide) ======
+    // Si aún no estamos en sección de slides, podemos activarla
+    // al detectar el primer encabezado con reglas amplias.
+    let headerInfo = parseSlideHeader(line, inSlidesSection);
+    if (!inSlidesSection && !headerInfo.isHeader) {
+      const tmp = parseSlideHeader(line, true); // forzamos modo "estoy en slides"
+      if (tmp.isHeader) {
+        inSlidesSection = true;
+        headerInfo = tmp;
+      }
+    }
+
+    if (headerInfo.isHeader) {
       const bodyLines = [];
+      // Si el encabezado trae texto en la MISMA línea (caso "1) texto..."),
+      // lo metemos como primera línea del cuerpo
+      if (headerInfo.inlineText) {
+        bodyLines.push(headerInfo.inlineText);
+      }
+
       let j = i + 1;
       for (; j < lines.length; j++) {
         const l2 = lines[j];
         const l2lower = l2.toLowerCase();
+        const nextHeader = parseSlideHeader(l2, inSlidesSection).isHeader;
         if (
-          isSlideHeader(l2, inSlidesSection) ||
+          nextHeader ||
           l2lower.startsWith("images for post") ||
           l2lower.startsWith("link cover image") ||
           l2lower.startsWith("book - author - tropes") ||
@@ -194,10 +330,16 @@ function parseInput(raw) {
         }
         bodyLines.push(l2);
       }
-      result.slides.push({ title, text: bodyLines.join("\n").trim() });
+
+      result.slides.push({
+        title: headerInfo.title || line,
+        text: bodyLines.join("\n").trim()
+      });
+
       i = j - 1;
       continue;
     }
+
 
     // Imágenes (categoría)
     if (lower.startsWith("images for post")) {
@@ -1001,6 +1143,14 @@ async function loadOrdersFromBackend() {
 // ====== EVENTOS GLOBALES ======
 document.getElementById("addOrderBtn").addEventListener("click", addOrderFromInput);
 document.getElementById("resetOrdersBtn").addEventListener("click", resetAllOrders);
+const downloadAllImagesBtn = document.getElementById("downloadAllImagesBtn");
+if (downloadAllImagesBtn) {
+  downloadAllImagesBtn.addEventListener("click", () => {
+    // true = incluye órdenes completadas
+    // false = solo las que todavía no marcas como completadas
+    downloadAllImagesAsZip(true);
+  });
+}
 
 const loadFromServerBtn = document.getElementById("loadFromServerBtn");
 if (loadFromServerBtn) {

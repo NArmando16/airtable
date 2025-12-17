@@ -54,6 +54,7 @@
 
     <!-- ENTRADA DE TEXTO / NUEVA ORDEN -->
     <section>
+      
       <textarea id="rawInput" placeholder="Pega aquí el texto completo"></textarea>
       <div class="controls">
         <button id="addOrderBtn" class="btn">
@@ -73,7 +74,25 @@
     <button id="resetOrdersBtn" class="copy-btn">
       🧹 Limpiar cola de órdenes
     </button>
+  </div>  
+<section class="card" id="ordersCard">
+  <h2>Órdenes</h2>
+
+  <div class="field-group">
+    <span id="ordersCountTag" class="pill">0 ordenes</span>
   </div>
+
+  <!-- 👇 NUEVO BOTÓN AQUÍ -->
+  <button
+    id="downloadAllImagesBtn"
+    class="btn"
+    style="margin-bottom:0.5rem;"
+  >
+    ⬇️ Descargar todas las imágenes (zip)
+  </button>
+
+  <div id="orderList"></div>
+</section>
 
   <div id="orderList"></div>
 </section>
@@ -184,6 +203,10 @@
     </section>
   </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="app.js"></script>
+
   <script src="app.js"></script>
+  
 </body>
 </html>

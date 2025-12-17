@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin CSV - Backend Airtable</title>
+</head>
+<body>
+  <h1>Backend Airtable - Admin</h1>
+
+  <p>
+    Backend actual:
+    <strong id="backendUrlLabel"></strong>
+  </p>
+
+  <h2>1. Subir CSV del día</h2>
+  <form id="csvForm" enctype="multipart/form-data">
+    <input type="file" id="csvFile" name="file" accept=".csv,text/csv" />
+    <button type="submit">📥 Subir CSV al backend</button>
+  </form>
+
+  <h2 style="margin-top:1.5rem;">2. Limpiar datos del backend</h2>
+  <button id="resetBackendBtn" type="button" style="background:#b91c1c; color:white; padding:0.4rem 0.7rem; border:none; border-radius:4px; cursor:pointer;">
+    🔥 Borrar todas las órdenes del backend
+  </button>
+  <p style="font-size:0.85rem; color:#666;">
+    Úsalo sólo si subiste un CSV equivocado o quieres empezar el día totalmente limpio.
+  </p>
+
+  <pre id="result" style="margin-top:1rem; white-space:pre-wrap; background:#f3f3f3; padding:0.5rem;"></pre>
+
+  <script>
+    const BACKEND_BASE_URL = "https://backend-airtable-nxyk.onrender.com";
+
+    document.getElementById("backendUrlLabel").textContent = BACKEND_BASE_URL;
+
+    const form = document.getElementById("csvForm");
+    const fileInput = document.getElementById("csvFile");
+    const resultEl = document.getElementById("result");
+    const resetBtn = document.getElementById("resetBackendBtn");
+
+    // Subir CSV
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("Primero selecciona el CSV del día.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      resultEl.textContent = "Subiendo CSV, espera...";
+
+      try {
+        const resp = await fetch(BACKEND_BASE_URL + "/api/import-csv", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await resp.json();
+        resultEl.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        console.error(err);
+        resultEl.textContent = "Error subiendo CSV: " + err.message;
+      }
+    });
+
+    // Limpiar backend
+    resetBtn.addEventListener("click", async () => {
+      const ok = confirm(
+        "⚠ Esto borrará TODAS las órdenes del backend (todos los workers, todos los celulares).\n\n¿Seguro que quieres continuar?"
+      );
+      if (!ok) return;
+
+      resultEl.textContent = "Limpiando backend...";
+
+      try {
+        const resp = await fetch(BACKEND_BASE_URL + "/api/reset-store", {
+          method: "POST"
+        });
+        const data = await resp.json();
+        resultEl.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        console.error(err);
+        resultEl.textContent = "Error limpiando backend: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

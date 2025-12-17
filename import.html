@@ -6,88 +6,130 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   />
-  <title>Importar órdenes desde CSV</title>
+  <title>Importar CSV al backend</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="container">
     <section class="card">
-      <h1>Importar órdenes desde CSV</h1>
+      <h1>Subir CSV del día al backend</h1>
 
       <p style="margin-bottom: 0.8rem; font-size: 0.9rem; color: #9ca3af;">
-        1. Descarga el <strong>CSV del día</strong> de la empresa en este celular.<br />
-        2. Sube el archivo aquí abajo.<br />
-        3. Filtra por tu ID de trabajador (Crew) y, si quieres, por el
-        <strong>Celular</strong> de este teléfono (ej: <code>TIKTOK USA 919</code>).<br />
-        4. Yo crearé todas las órdenes en la cola de este dispositivo.
+        Este archivo NO va a la cola de este celular, se envía al servidor
+        (<strong>una sola vez por día</strong>).<br />
+        Luego cada celular usa el botón
+        <strong>“Cargar órdenes de hoy desde servidor”</strong> en el gestor
+        principal.
+      </p>
+
+      <p style="margin-bottom: 0.5rem;">
+        Backend actual:
+        <strong id="backendUrlLabel"></strong>
       </p>
 
       <div class="field-group">
-        <label for="workerIdInput" class="field-label">
-          ID de trabajador (columna <code>2 Crew</code>)
-        </label>
-        <input
-          id="workerIdInput"
-          type="text"
-          class="text-input"
-          placeholder="Ej: 584ArmandoNavarro"
-        />
-      </div>
-
-      <div class="field-group">
-        <label for="celularIdInput" class="field-label">
-          Celular de este teléfono (columna <code>Celular</code>)
-        </label>
-        <input
-          id="celularIdInput"
-          type="text"
-          class="text-input"
-          placeholder="Ej: TIKTOK USA 919 (opcional)"
-        />
-        <p style="margin-top: 0.2rem; font-size: 0.8rem; color: #9ca3af;">
-          Si lo dejas vacío, se importarán todas tus órdenes (todos los celulares).
-          Si lo rellenas, se importarán solo las órdenes de ese celular.
-        </p>
-      </div>
-
-      <div class="field-group">
-        <label for="csvFileInput" class="field-label">
+        <label for="csvFile" class="field-label">
           Archivo CSV del día
         </label>
         <input
-          id="csvFileInput"
+          id="csvFile"
           type="file"
+          name="file"
           accept=".csv,text/csv"
           class="text-input"
         />
       </div>
 
       <div class="controls">
-        <button id="analyzeCsvBtn" class="btn">
-          📥 Analizar CSV e importar órdenes
+        <button id="uploadBtn" class="btn">
+          📥 Subir CSV al backend
         </button>
         <a href="index.html" class="copy-btn">
           ⬅ Volver al gestor
         </a>
       </div>
 
-      <p
-        id="importStatus"
-        style="margin-top: 0.8rem; font-size: 0.9rem; color: #9ca3af;"
+      <h2 style="margin-top: 1.5rem;">Limpiar datos del backend</h2>
+      <button
+        id="resetBackendBtn"
+        type="button"
+        class="btn"
+        style="background:#b91c1c;"
       >
-        Aún no se ha importado nada.
+        🔥 Borrar todas las órdenes del backend
+      </button>
+      <p style="font-size:0.8rem; color:#9ca3af; margin-top:0.3rem;">
+        Úsalo solo si subiste un CSV equivocado o quieres empezar totalmente
+        desde cero.
       </p>
 
       <pre
-        id="importPreview"
+        id="result"
         class="text-block"
-        style="margin-top: 0.8rem; font-size: 0.85rem; white-space: pre-wrap;"
+        style="margin-top:1rem; font-size:0.85rem; white-space:pre-wrap;"
       ></pre>
     </section>
   </main>
 
-  <!-- PapaParse para leer CSV en el navegador -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="import.js"></script>
+  <script>
+    // 👇 URL de tu backend en Render
+    const BACKEND_BASE_URL = "https://backend-airtable-nxyk.onrender.com";
+
+    const backendLabel = document.getElementById("backendUrlLabel");
+    const fileInput = document.getElementById("csvFile");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const resetBtn = document.getElementById("resetBackendBtn");
+    const resultEl = document.getElementById("result");
+
+    backendLabel.textContent = BACKEND_BASE_URL;
+
+    // Subir CSV al backend
+    uploadBtn.addEventListener("click", async () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("Primero selecciona el CSV del día.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      resultEl.textContent = "Subiendo CSV al backend, espera...";
+
+      try {
+        const resp = await fetch(BACKEND_BASE_URL + "/api/import-csv", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await resp.json();
+        resultEl.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        console.error(err);
+        resultEl.textContent = "Error subiendo CSV: " + err.message;
+      }
+    });
+
+    // Resetear backend (borrar todas las órdenes en memoria)
+    resetBtn.addEventListener("click", async () => {
+      const ok = confirm(
+        "⚠ Esto borrará TODAS las órdenes del backend (todos los workers y celulares).\n\n¿Seguro que quieres continuar?"
+      );
+      if (!ok) return;
+
+      resultEl.textContent = "Limpiando backend...";
+
+      try {
+        const resp = await fetch(BACKEND_BASE_URL + "/api/reset-store", {
+          method: "POST"
+        });
+        const data = await resp.json();
+        resultEl.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        console.error(err);
+        resultEl.textContent = "Error limpiando backend: " + err.message;
+      }
+    });
+  </script>
 </body>
 </html>
