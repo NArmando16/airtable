@@ -233,26 +233,49 @@ function parseInput(raw) {
       continue; // no queremos tratar esta línea como texto
     }
 
-        // Caption
+      // Caption
     if (captionRegex.test(line)) {
-      let captionInline = line.replace(captionRegex, "").trim();
-      captionInline = cleanLine(captionInline);
+      // Todo lo que viene después de "Caption", "TikTok Caption", etc.
+      let rawAfter = line.replace(captionRegex, "").trim();
 
-      // Si solo queda un guion / raya / signos de puntuación, lo tratamos como vacío
-      if (
-        captionInline &&
-        !/[A-Za-z0-9\u00C0-\u1FFF\u2C00-\uD7FF]/.test(captionInline)
-      ) {
-        captionInline = "";
+      // ¿Tiene letras o números?
+      const hasLettersOrDigits =
+        /[A-Za-z0-9\u00C0-\u1FFF\u2C00-\uD7FF]/.test(rawAfter);
+
+      // Solo signos (guiones, puntos, etc.)
+      const looksLikeOnlyPunct = rawAfter && !hasLettersOrDigits;
+
+      // Cosas tipo "(sugerido)" / "(suggested)"
+      const looksLikeSuggestedLabel = /^\(?\s*(sugerido|sugerida|suggested)\s*\)?\s*:?\s*$/i.test(
+        rawAfter
+      );
+
+      // ¿Debemos usar la siguiente línea como caption?
+      let useNextLineAsCaption =
+        !rawAfter || looksLikeOnlyPunct || looksLikeSuggestedLabel;
+
+      if (!useNextLineAsCaption) {
+        // Caso normal: "Caption: Texto del caption..."
+        const cleaned = cleanLine(rawAfter);
+        if (cleaned) {
+          result.caption = cleaned;
+          continue;
+        } else {
+          useNextLineAsCaption = true;
+        }
       }
 
-      if (captionInline) {
-        // Texto en la misma línea que "Caption"
-        result.caption = captionInline;
-      } else if (i + 1 < lines.length) {
-        // "Caption –" → usamos la siguiente línea como caption
-        result.caption = cleanLine(lines[i + 1]);
+      if (useNextLineAsCaption && i + 1 < lines.length) {
+        const candidate = lines[i + 1];
+
+        // Si la siguiente línea ya es header de slide (1, 1., Slide 1, etc.)
+        // NO la usamos como caption
+        const headerInfo = parseSlideHeader(candidate, true);
+        if (!headerInfo.isHeader) {
+          result.caption = cleanLine(candidate);
+        }
       }
+
       continue;
     }
 
